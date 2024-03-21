@@ -1,0 +1,3 @@
+[submodule "mpcCommon"]
+	path = mpcCommon
+	url = git@github.com:mpcsdk/mpcCommon.git

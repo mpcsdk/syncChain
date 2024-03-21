@@ -1,0 +1,48 @@
+server:
+  name: "syncChain"
+  address:     ":8000"
+  workId: 1
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+jaegerUrl: "127.0.0.1:6831"
+
+logger:
+  level : "all"
+  stdout: true 
+  rotateExpire: "1d"
+  path: "./"
+  logger1:
+    level : "all"
+    stdout: true 
+    rotateExpire: "1d"
+    path: "./"
+
+database:
+  default:
+  - link: "pgsql:postgres:123456@tcp(127.0.0.1:10100)/syncChain"
+
+cache:
+  sessionDuration: 2000
+
+nrpc:
+  natsUrl: "127.0.0.1:4222"
+
+chainini: "./chain.ini"
+
+# redis 
+redis:
+  default:
+    address: 127.0.0.1:6379
+    db:      1
+  cache:
+    address:     127.0.0.1:6379
+    db:          2
+
+
+gfcli:
+  gen:
+    dao:
+    - link:     "pgsql:postgres:123456@tcp(127.0.0.1:10100)/syncChain"
+      tables:   "chain_data"
+      jsonCase: "CamelLower"
