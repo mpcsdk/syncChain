@@ -25,7 +25,7 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 		return err
 	}
 	d, _ := json.Marshal(data)
-	s.jet.PublishAsync(mq.SubJet_ChainTx, d)
+	s.jet.PublishAsync(mq.JetSub_ChainTx, d)
 	return nil
 }
 func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
@@ -65,6 +65,10 @@ func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainD
 func new() *sDB {
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)
 	jet, err := nats.JetStream()
+	if err != nil {
+		panic(err)
+	}
+	_, err = nats.GetChainTxStream()
 	if err != nil {
 		panic(err)
 	}
