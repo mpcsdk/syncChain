@@ -33,6 +33,7 @@ func new() *sChainData {
 	////
 	if p.GetOpt("sync") != nil {
 
+		g.Log().Notice(s.ctx, "Sycn mode")
 		common.InitConf(conf.Config.Chainini)
 		block.Init()
 		///
@@ -43,6 +44,8 @@ func new() *sChainData {
 			//
 		})
 		go gproc.Listen()
+	} else {
+		g.Log().Notice(s.ctx, "Api mode")
 	}
 	///
 	return s
