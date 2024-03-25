@@ -15,6 +15,7 @@ type Server struct {
 	Address string `json:"address" v:"required"`
 	WorkId  int    `json:"workId" v:"required|min:1"`
 	Name    string `json:"name" v:"required"`
+	MsgSize int64  `json:'msgSize" v:"required|min:100000"`
 }
 type Nrpcfg struct {
 	NatsUrl string `json:"natsUrl" v:"required"`

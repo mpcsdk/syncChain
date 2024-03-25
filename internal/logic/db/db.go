@@ -66,7 +66,7 @@ func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainD
 
 func new() *sDB {
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)
-	jet, err := nats.JetStream()
+	jet, err := nats.JetStream(conf.Config.Server.MsgSize)
 	if err != nil {
 		panic(err)
 	}

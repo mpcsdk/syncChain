@@ -4,6 +4,7 @@ server:
   workId: 1
   openapiPath: "/api.json"
   swaggerPath: "/swagger"
+  msgSize: 1000000
 
 jaegerUrl: "127.0.0.1:6831"
 
@@ -33,10 +34,10 @@ chainini: "./chain.ini"
 # redis 
 redis:
   default:
-    address: 127.0.0.1:6379
+    address: 192.168.0.77:6379
     db:      1
   cache:
-    address:     127.0.0.1:6379
+    address:     192.168.0.77:6379
     db:          2
 
 
