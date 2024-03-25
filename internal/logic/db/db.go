@@ -24,8 +24,10 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 	if err != nil {
 		return err
 	}
+	////sync tx to mq
 	d, _ := json.Marshal(data)
 	s.jet.PublishAsync(mq.JetSub_ChainTx, d)
+	///
 	return nil
 }
 func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
