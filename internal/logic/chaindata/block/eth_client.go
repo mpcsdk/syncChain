@@ -132,10 +132,9 @@ func (self *ethModule) close() {
 		return
 	}
 
-	self.closeClient()
 	self.closed = true
+	self.closeClient()
 	self.exit <- 1
-
 }
 
 func (self *ethModule) initChainId() {

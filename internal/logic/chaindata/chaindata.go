@@ -2,7 +2,6 @@ package chaindata
 
 import (
 	"context"
-	"os"
 	"syncChain/internal/logic/chaindata/block"
 	"syncChain/internal/logic/chaindata/common"
 	"syncChain/internal/service"
@@ -12,16 +11,19 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
-	"github.com/gogf/gf/v2/os/gproc"
 )
 
 type sChainData struct {
-	ctx context.Context
+	ctx    context.Context
+	cancle context.CancelFunc
 }
 
 func new() *sChainData {
+
+	ctx, cancle := context.WithCancel(gctx.GetInitCtx())
 	s := &sChainData{
-		ctx: gctx.GetInitCtx(),
+		ctx:    ctx,
+		cancle: cancle,
 	}
 	//
 	p, err := gcmd.Parse(g.MapStrBool{
@@ -37,14 +39,14 @@ func new() *sChainData {
 		common.InitConf(conf.Config.Chainini)
 		block.Init()
 		///
-		gproc.AddSigHandlerShutdown(func(sig os.Signal) {
-			g.Log().Warning(s.ctx, "Sig:receive signal:", sig.String())
+		// gproc.AddSigHandlerShutdown(func(sig os.Signal) {
+		// 	g.Log().Warning(s.ctx, "Sig:receive signal:", sig.String())
 
-			block.Close()
-			//
-			return
-		})
-		go gproc.Listen()
+		// 	block.Close()
+		// 	//
+		// 	// s.cancle()
+		// })
+		// go gproc.Listen()
 	} else {
 		g.Log().Notice(s.ctx, "Api mode")
 	}
