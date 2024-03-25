@@ -42,6 +42,7 @@ func new() *sChainData {
 
 			block.Close()
 			//
+			return
 		})
 		go gproc.Listen()
 	} else {
