@@ -15,8 +15,8 @@ type CountRes struct {
 // /
 type QueryReq struct {
 	g.Meta   `path:"/query" tags:"query" method:"post" summary:"You first hello api"`
-	FromAddr string `json:"fromAddr"`
-	ToAddr   string `json:"toAddr"`
+	From     string `json:"from"`
+	To       string `json:"to"`
 	Contract string `json:"contract"`
 	///
 	StartTime int64 `json:"startTime"`

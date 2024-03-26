@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"syncChain/internal/conf"
-	"syncChain/internal/dao"
 	"syncChain/internal/model"
 	"syncChain/internal/model/entity"
 	"syncChain/internal/service"
 
+	"github.com/mpcsdk/mpcCommon/mpcdao/dao"
 	"github.com/mpcsdk/mpcCommon/mq"
 
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
@@ -33,11 +33,11 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
 
 	where := dao.ChainData.Ctx(ctx)
-	if query.FromAddr != "" {
-		where = where.Where(dao.ChainData.Columns().FromAddr, query.FromAddr)
+	if query.From != "" {
+		where = where.Where(dao.ChainData.Columns().From, query.From)
 	}
-	if query.ToAddr != "" {
-		where = where.Where(dao.ChainData.Columns().ToAddr, query.ToAddr)
+	if query.To != "" {
+		where = where.Where(dao.ChainData.Columns().To, query.To)
 	}
 	if query.Contract != "" {
 		where = where.Where(dao.ChainData.Columns().Contract, query.Contract)
@@ -66,11 +66,11 @@ func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainD
 
 func new() *sDB {
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)
-	jet, err := nats.JetStream(conf.Config.Server.MsgSize)
+	jet, err := nats.JetStream()
 	if err != nil {
 		panic(err)
 	}
-	_, err = nats.GetChainTxStream()
+	_, err = nats.GetChainTxStream(conf.Config.Server.MsgSize)
 	if err != nil {
 		panic(err)
 	}

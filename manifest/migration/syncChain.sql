@@ -32,8 +32,8 @@ CREATE TABLE public.chain_data (
     tx_hash character varying(255) NOT NULL,
     tx_idx integer NOT NULL,
     log_idx integer NOT NULL,
-    from_addr character varying(255) NOT NULL,
-    to_addr character varying(255) NOT NULL,
+    "from" character varying(255) NOT NULL,
+    "to" character varying(255) NOT NULL,
     contract character varying(255) NOT NULL,
     value character varying(255) NOT NULL,
     gas character varying(255) NOT NULL,
@@ -48,7 +48,7 @@ ALTER TABLE public.chain_data OWNER TO postgres;
 -- Name: fromtscontractid; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX fromtscontractid ON public.chain_data USING btree (ts, from_addr, contract, chain_id);
+CREATE INDEX fromtscontractid ON public.chain_data USING btree (ts, "from", contract, chain_id);
 
 
 --
@@ -62,7 +62,7 @@ CREATE UNIQUE INDEX hashtxidxlogidx ON public.chain_data USING btree (chain_id, 
 -- Name: totscontractid; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX totscontractid ON public.chain_data USING btree (ts, to_addr, contract, chain_id);
+CREATE INDEX totscontractid ON public.chain_data USING btree (ts, "to", contract, chain_id);
 
 
 --
