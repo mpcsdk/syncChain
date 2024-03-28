@@ -20,7 +20,7 @@ logger:
     path: "./"
 
 database:
-  default:
+  syncChain:
   - link: "pgsql:postgres:123456@tcp(123.60.148.168:10100)/syncChain"
 
 cache:
