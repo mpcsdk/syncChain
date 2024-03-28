@@ -21,29 +21,22 @@ logger:
 
 database:
   default:
-  - link: "pgsql:postgres:123456@tcp(127.0.0.1:10100)/syncChain"
+  - link: "pgsql:postgres:123456@tcp(123.60.148.168:10100)/syncChain"
 
 cache:
   sessionDuration: 2000
 
 nrpc:
-  natsUrl: "127.0.0.1:4222"
+  natsUrl: "123.60.148.168:10070"
 
 chainini: "./chain.ini"
 
 # redis 
 redis:
   default:
-    address: 192.168.0.77:6379
+    address: 127.0.0.1:10060
     db:      1
   cache:
-    address:     192.168.0.77:6379
+    address:     127.0.0.1:10060
     db:          2
 
-
-gfcli:
-  gen:
-    dao:
-    - link:     "pgsql:postgres:123456@tcp(127.0.0.1:10100)/syncChain"
-      tables:   "chain_data"
-      jsonCase: "CamelLower"

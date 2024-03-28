@@ -70,7 +70,7 @@ func new() *sDB {
 	if err != nil {
 		panic(err)
 	}
-	_, err = nats.GetChainTxStream(conf.Config.Server.MsgSize)
+	_, err = nats.GetUpChainTxStream(conf.Config.Server.MsgSize)
 	if err != nil {
 		panic(err)
 	}
