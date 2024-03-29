@@ -31,7 +31,7 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 	return nil
 }
 func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
-	if query.PageSize < 1 || query.Page < 1 {
+	if query.PageSize < 1 || query.Page < 0 {
 		return nil, nil
 	}
 	//
