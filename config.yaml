@@ -1,5 +1,5 @@
 server:
-  name: "syncChain"
+  name: "sync_chain"
   address:     ":8000"
   workId: 1
   openapiPath: "/api.json"
@@ -20,8 +20,8 @@ logger:
     path: "./"
 
 database:
-  syncChain:
-  - link: "pgsql:postgres:123456@tcp(123.60.148.168:10100)/syncChain"
+  sync_chain:
+  - link: "pgsql:postgres:123456@tcp(123.60.148.168:10100)/sync_chain"
 
 cache:
   sessionDuration: 2000

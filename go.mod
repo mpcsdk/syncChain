@@ -8,9 +8,11 @@ require (
 	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.6.4
 	github.com/gogf/gf/v2 v2.6.4
 	github.com/holiman/uint256 v1.2.4
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mpcsdk/mpcCommon v0.0.0
 	github.com/nats-io/nats.go v1.34.0
+	go.opentelemetry.io/otel/trace v1.14.0
 	golang.org/x/crypto v0.18.0
 )
 

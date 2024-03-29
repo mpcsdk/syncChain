@@ -8,7 +8,8 @@ package service
 import (
 	"context"
 	"syncChain/internal/model"
-	"syncChain/internal/model/entity"
+
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 type (

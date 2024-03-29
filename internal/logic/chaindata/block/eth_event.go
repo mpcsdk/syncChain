@@ -5,13 +5,14 @@ import (
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/model/entity"
+
 	"syncChain/internal/service"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/os/gctx"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 const (
@@ -64,8 +65,8 @@ func (self *ethModule) processEvent(i int64, blockhash string, ts int64, client 
 			Ts:        ts,
 			TxHash:    log.TxHash.String(),
 			TxIdx:     int(log.TxIndex),
-			FromAddr:  fromAddr.String(),
-			ToAddr:    toAddr.String(),
+			From:      fromAddr.String(),
+			To:        toAddr.String(),
 			Contract:  contractAddr,
 			Value:     value.String(),
 			Gas:       "0",

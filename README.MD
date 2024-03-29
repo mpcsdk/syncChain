@@ -3,11 +3,11 @@
 ## init db
 
 ```
-psql   -U postgres -h localhost -p 5432 -c "create database syncChain"
+psql   -U postgres -h localhost -p 5432 -c "create database sync_chain"
 ```
 
 ```
-psql   -U postgres -h localhost -p 5432 -d syncChain -f ./manifest/migration/syncChain.sql
+psql   -U postgres -h localhost -p 5432 -d sync_chain -f ./manifest/migration/sync_chain.sql
 ```
 
 ## rpc

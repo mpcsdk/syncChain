@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"syncChain/internal/conf"
 	"syncChain/internal/model"
-	"syncChain/internal/model/entity"
 	"syncChain/internal/service"
 
 	"github.com/mpcsdk/mpcCommon/mpcdao/dao"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	"github.com/mpcsdk/mpcCommon/mq"
 
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
@@ -31,7 +31,10 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 	return nil
 }
 func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
-
+	if query.PageSize < 1 || query.Page < 1 {
+		return nil, nil
+	}
+	//
 	where := dao.ChainData.Ctx(ctx)
 	if query.From != "" {
 		where = where.Where(dao.ChainData.Columns().From, query.From)
