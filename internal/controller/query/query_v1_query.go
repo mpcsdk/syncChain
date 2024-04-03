@@ -4,12 +4,12 @@ import (
 	"context"
 
 	v1 "syncChain/api/query/v1"
-	"syncChain/internal/model"
 	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpccode"
+	"github.com/mpcsdk/mpcCommon/mpcdao"
 )
 
 func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.QueryRes, err error) {
@@ -24,7 +24,7 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 		return nil, mpccode.CodeParamInvalid()
 	}
 	///
-	query := &model.QueryTx{
+	query := &mpcdao.QueryData{
 		From: func() string {
 			if req.From == "" {
 				return ""

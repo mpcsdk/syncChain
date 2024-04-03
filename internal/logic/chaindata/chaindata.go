@@ -39,14 +39,7 @@ func new() *sChainData {
 		common.InitConf(conf.Config.Chainini)
 		block.Init()
 		///
-		// gproc.AddSigHandlerShutdown(func(sig os.Signal) {
-		// 	g.Log().Warning(s.ctx, "Sig:receive signal:", sig.String())
 
-		// 	block.Close()
-		// 	//
-		// 	// s.cancle()
-		// })
-		// go gproc.Listen()
 	} else {
 		g.Log().Notice(s.ctx, "Api mode")
 	}

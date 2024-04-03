@@ -4,23 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"syncChain/internal/conf"
-	"syncChain/internal/model"
 	"syncChain/internal/service"
 
-	"github.com/mpcsdk/mpcCommon/mpcdao/dao"
+	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	"github.com/mpcsdk/mpcCommon/mq"
 
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gctx"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
 type sDB struct {
-	jet jetstream.JetStream
+	jet       jetstream.JetStream
+	chainData *mpcdao.ChainData
 }
 
 func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
-	_, err := dao.ChainData.Ctx(ctx).Insert(data)
+	err := s.chainData.Insert(ctx, data)
 	if err != nil {
 		return err
 	}
@@ -30,41 +32,12 @@ func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
 	///
 	return nil
 }
-func (s *sDB) Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error) {
-	if query.PageSize < 1 || query.Page < 0 {
-		return nil, nil
-	}
-	//
-	where := dao.ChainData.Ctx(ctx)
-	if query.From != "" {
-		where = where.Where(dao.ChainData.Columns().From, query.From)
-	}
-	if query.To != "" {
-		where = where.Where(dao.ChainData.Columns().To, query.To)
-	}
-	if query.Contract != "" {
-		where = where.Where(dao.ChainData.Columns().Contract, query.Contract)
-	}
-	///time
-	if query.StartTime != 0 {
-		where = where.WhereGTE(dao.ChainData.Columns().Ts, query.StartTime)
-	}
-	if query.EndTime != 0 {
-		where = where.WhereLTE(dao.ChainData.Columns().Ts, query.EndTime)
-	}
-	///
-	if query.PageSize != 0 {
-		where = where.Limit(query.Page*query.PageSize, query.PageSize)
-	}
-	///
-	result, err := where.All()
-	if err != nil {
-		return nil, err
-	}
-	data := []*entity.ChainData{}
-	err = result.Structs(&data)
-	///
-	return data, err
+func (s *sDB) Query(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainData, error) {
+	return s.chainData.Query(ctx, query)
+}
+
+func (s *sDB) ChainData() *mpcdao.ChainData {
+	return s.chainData
 }
 
 func new() *sDB {
@@ -77,9 +50,16 @@ func new() *sDB {
 	if err != nil {
 		panic(err)
 	}
-
+	///
+	r := g.Redis()
+	_, err = r.Conn(gctx.GetInitCtx())
+	if err != nil {
+		panic(err)
+	}
+	///
 	return &sDB{
-		jet: jet,
+		jet:       jet,
+		chainData: mpcdao.NewChainData(r, conf.Config.Cache.SessionDuration),
 	}
 }
 func init() {

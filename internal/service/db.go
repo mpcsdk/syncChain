@@ -7,15 +7,16 @@ package service
 
 import (
 	"context"
-	"syncChain/internal/model"
 
+	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 type (
 	IDB interface {
 		Insert(ctx context.Context, data *entity.ChainData) error
-		Query(ctx context.Context, query *model.QueryTx) ([]*entity.ChainData, error)
+		Query(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainData, error)
+		ChainData() *mpcdao.ChainData
 	}
 )
 
