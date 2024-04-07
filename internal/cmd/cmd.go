@@ -59,7 +59,7 @@ func ResponseHandler(r *ghttp.Request) {
 		Code:    code.Code(),
 		Message: code.Message(),
 		Data: func() interface{} {
-			if code.Code() != gcode.CodeNil.Code() {
+			if code.Code() != gcode.CodeOK.Code() {
 				return code.Detail()
 			} else {
 				return res
