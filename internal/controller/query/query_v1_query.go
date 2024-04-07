@@ -15,13 +15,13 @@ import (
 func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.QueryRes, err error) {
 	g.Log().Debug(ctx, "Query req:", req)
 	if req.From == "" && req.To == "" && req.Contract == "" {
-		return nil, mpccode.CodeParamInvalid()
+		return nil, mpccode.CodeParamInvalid("from, to, contract can't be all empty")
 	}
 	if req.StartTime >= req.EndTime {
-		return nil, mpccode.CodeParamInvalid()
+		return nil, mpccode.CodeParamInvalid("startTime >= endTime")
 	}
 	if req.Page < 0 || req.PageSize <= 0 {
-		return nil, mpccode.CodeParamInvalid()
+		return nil, mpccode.CodeParamInvalid("page or pageSize invalid")
 	}
 	///
 	query := &mpcdao.QueryData{
@@ -56,7 +56,7 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 	result, err := service.DB().Query(ctx, query)
 	if err != nil {
 		g.Log().Error(ctx, "Query err:", err)
-		return nil, mpccode.CodeParamInvalid()
+		return nil, mpccode.CodeInternalError(mpccode.TraceId(ctx))
 	}
 	//
 	res = &v1.QueryRes{}
