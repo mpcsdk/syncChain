@@ -22,12 +22,14 @@ logger:
 database:
   sync_chain:
   - link: "pgsql:postgres:123456@tcp(123.60.148.168:10100)/sync_chain"
+  riskcontrol:
+  - link: "mysql:ssh:123456@tcp(127.0.0.1:3305)/riskcontrol"
 
 cache:
   sessionDuration: 2000
 
 nrpc:
-  natsUrl: "123.60.148.168:10070"
+  natsUrl: "127.0.0.1:4222"
 
 chainini: "./chain.ini"
 

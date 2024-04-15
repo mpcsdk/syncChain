@@ -32,7 +32,7 @@ var (
 	}
 )
 
-func (self *ethModule) processBlock() {
+func (self *EthModule) processBlock() {
 	self.lock.Lock()
 	defer func() {
 		self.blockTimer.Reset(blockWait)
@@ -51,6 +51,9 @@ func (self *ethModule) processBlock() {
 	}
 
 	topHeight := header.Number.Int64()
+	if self.lastBlock == 0 {
+		self.lastBlock = topHeight
+	}
 	self.logger.Debugf(self.ctx, "get header. height: %d, hash: %s", topHeight, header.Hash().String())
 
 	last := topHeight - 12
@@ -112,7 +115,7 @@ func (self *ethModule) processBlock() {
 					LogIdx:    -1,
 					Nonce:     int64(tx.Nonce()),
 				}
-				err := service.DB().Insert(gctx.GetInitCtx(), data)
+				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
 				if err != nil {
 					switch v := gerror.Cause(err).(type) {
 					case *pq.Error:
@@ -175,7 +178,7 @@ func (self *ethModule) processBlock() {
 					LogIdx:    -1,
 					Nonce:     int64(tx.Nonce()),
 				}
-				err := service.DB().Insert(gctx.GetInitCtx(), data)
+				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
 				if err != nil {
 					switch v := err.(type) {
 					case *pq.Error:
@@ -192,7 +195,7 @@ func (self *ethModule) processBlock() {
 
 		}
 
-		if 0 != len(self.list) {
+		if 0 != len(self.contracts) {
 			self.processEvent(i, blockhashString, int64(block.Time()), client)
 		}
 
@@ -201,7 +204,7 @@ func (self *ethModule) processBlock() {
 	}
 }
 
-func (self *ethModule) getBlock(i int64, client *Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {
+func (self *EthModule) getBlock(i int64, client *Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {
 	var (
 		block    *types.Block
 		hash     *common.Hash

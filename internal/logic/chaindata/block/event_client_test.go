@@ -14,7 +14,7 @@ func TestInit(t *testing.T) {
 
 	common.InitConf("chain.ini")
 
-	Init()
+	// Init()
 
 	time.Sleep(10 * time.Hour)
 }

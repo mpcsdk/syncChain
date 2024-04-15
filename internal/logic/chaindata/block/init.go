@@ -2,73 +2,23 @@ package block
 
 import (
 	"strings"
-	"syncChain/internal/logic/chaindata/common"
-	"time"
 
-	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gctx"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-const (
-	chains       = "chains"
-	chainsHeight = "height"
-	contracts    = "contracts"
-)
+var transferabi abi.ABI
+var transferevent abi.Event
+var transferTopic string
 
-var (
-	chainClients map[string]*ethModule
-	closed       = false
-)
-
-func Init() {
-	chainClients = make(map[string]*ethModule, 4)
-
-	chainRpcList := common.GlobalConf.GetStrings(chains)
-	if 0 == len(chainRpcList) {
-		return
+func init() {
+	a, err := abi.JSON(strings.NewReader(abiData))
+	if err != nil {
+		panic(err)
 	}
-
-	chainContracts := common.GlobalConf.GetStrings(contracts)
-	for chain, rpc := range chainRpcList {
-		key := strings.ToLower(chain)
-		rpcList := strings.Split(rpc, ",")
-		module := ethModule{
-			ctx:     gctx.GetInitCtx(),
-			rpcList: rpcList,
-			logger:  g.Log("blocklog"),
-		}
-		chainClients[key] = &module
-
-		module.start(key, chainContracts[key])
-	}
-
-	logLoop()
-}
-
-func Close() {
-	closed = true
-	for _, module := range chainClients {
-		module.close()
-	}
-}
-func ClientState() map[int64]int64 {
-	d := map[int64]int64{}
-	for _, v := range chainClients {
-		d[v.chainId] = v.lastBlock
-	}
-	return d
-}
-func logLoop() {
-
-	go func() {
-		for range time.Tick(time.Second * 10) {
-			if closed {
-				return
-			}
-
-			for _, module := range chainClients {
-				g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.info())
-			}
-		}
-	}()
+	transferabi = a
+	transferevent = transferabi.Events[transferName]
+	transferTopic = hexutil.Encode(crypto.Keccak256([]byte(transferevent.Sig)))
+	////
 }

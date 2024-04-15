@@ -25,7 +25,7 @@ var (
 	rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
 )
 
-func (self *ethModule) processEvent(i int64, blockhash string, ts int64, client *Client) {
+func (self *EthModule) processEvent(i int64, blockhash string, ts int64, client *Client) {
 	logs := self.getLogs(i, client)
 	if nil == logs {
 		return
@@ -58,7 +58,7 @@ func (self *ethModule) processEvent(i int64, blockhash string, ts int64, client 
 			contractAddr = ""
 		}
 
-		service.DB().Insert(gctx.GetInitCtx(), &entity.ChainData{
+		service.DB().ChainData().Insert(gctx.GetInitCtx(), &entity.ChainData{
 			ChainId:   self.chainId,
 			Height:    i,
 			BlockHash: log.BlockHash.String(),
@@ -79,7 +79,7 @@ func (self *ethModule) processEvent(i int64, blockhash string, ts int64, client 
 
 }
 
-func (self *ethModule) getLogs(i int64, client *Client) []types.Log {
+func (self *EthModule) getLogs(i int64, client *Client) []types.Log {
 	var (
 		logs []types.Log
 		err  error
@@ -93,7 +93,7 @@ func (self *ethModule) getLogs(i int64, client *Client) []types.Log {
 		var query ethereum.FilterQuery
 		query.FromBlock = big.NewInt(i)
 		query.ToBlock = big.NewInt(i)
-		query.Addresses = self.list
+		query.Addresses = self.contracts
 		logs, err = client.FilterLogs(ctx, query)
 
 		ch <- 0

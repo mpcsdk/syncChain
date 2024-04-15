@@ -53,7 +53,7 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 		Page:     req.Page,
 		PageSize: req.PageSize,
 	}
-	result, err := service.DB().Query(ctx, query)
+	result, err := service.DB().ChainData().Query(ctx, query)
 	if err != nil {
 		g.Log().Error(ctx, "Query err:", err)
 		return nil, mpccode.CodeInternalError(mpccode.TraceId(ctx))

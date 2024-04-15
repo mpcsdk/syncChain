@@ -6,7 +6,10 @@
 package service
 
 type (
-	IChainData interface{}
+	IChainData interface {
+		Close()
+		ClientState() map[int64]int64
+	}
 )
 
 var (

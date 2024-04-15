@@ -19,3 +19,4 @@ bin
 **/config/config.yaml
 *.log
 syncChain
+__debug*
