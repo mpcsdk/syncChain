@@ -92,13 +92,32 @@ func (self *EthModule) process1155Batch(i int64, blockhash string, ts int64, cli
 	// }
 	contractAddr := log.Address.String()
 
-	tokenIds := out[0].([]*big.Int)
-	values := out[1].([]*big.Int)
-	if len(values) != len(tokenIds) {
+	////
+	pos := int64(0)
+	idlen := out[pos].(*big.Int)
+	pos++
+	///
+	tokenIds := []*big.Int{}
+	for i := int64(0); i < idlen.Int64(); i++ {
+		id := out[i+pos].(*big.Int)
+		pos++
+		tokenIds = append(tokenIds, id)
+	}
+	///
+	vlen := out[pos].(*big.Int)
+	pos++
+	vals := []*big.Int{}
+	for i := int64(0); i < vlen.Int64(); i++ {
+		v := out[i+pos].(*big.Int)
+		pos++
+		vals = append(vals, v)
+	}
+	//
+	if len(vals) != len(tokenIds) {
 		self.logger.Error(self.ctx, "value and tokenId length not equal")
 		return
 	}
-	for j, v := range values {
+	for j, v := range vals {
 		t := tokenIds[j]
 		service.DB().ChainData().Insert(gctx.GetInitCtx(), &entity.ChainData{
 			ChainId:   self.chainId,
