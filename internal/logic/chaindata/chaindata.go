@@ -45,6 +45,7 @@ func (s *sChainData) logLoop() {
 		for _, module := range s.clients {
 			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
 		}
+
 		for range time.Tick(time.Second * 10) {
 			if s.closed {
 				return
