@@ -42,6 +42,10 @@ func (s *sChainData) ClientState() map[int64]int64 {
 func (s *sChainData) logLoop() {
 
 	go func() {
+		for _, module := range s.clients {
+			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
+		}
+
 		for range time.Tick(time.Second * 10) {
 			if s.closed {
 				return
@@ -126,6 +130,7 @@ func new() *sChainData {
 	} else {
 		g.Log().Notice(s.ctx, "Api mode")
 	}
+	s.logLoop()
 	///
 	return s
 }

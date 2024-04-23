@@ -338,7 +338,7 @@ func (self *EthModule) updateHeight() {
 // //
 // //
 func (self *EthModule) Info() string {
-	return fmt.Sprintf("%s|%d|%d", self.name, self.chainId, self.lastBlock)
+	return fmt.Sprintf("%s|%d|%d,contracts:%d", self.name, self.chainId, self.lastBlock, len(self.contracts))
 }
 func (self *EthModule) Close() {
 	if self.closed {
