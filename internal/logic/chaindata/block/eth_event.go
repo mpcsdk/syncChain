@@ -69,7 +69,7 @@ func (self *EthModule) process721(i int64, blockhash string, ts int64, client *C
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "721",
+		Kind:      "erc721",
 	})
 }
 func (self *EthModule) process1155Batch(i int64, blockhash string, ts int64, client *Client, log types.Log) {
@@ -134,7 +134,7 @@ func (self *EthModule) process1155Batch(i int64, blockhash string, ts int64, cli
 			GasPrice:  "0",
 			LogIdx:    int(log.Index),
 			Nonce:     0,
-			Kind:      "1155",
+			Kind:      "erc1155",
 			TokenId:   t.String(),
 		})
 	}
@@ -179,7 +179,7 @@ func (self *EthModule) process1155Signal(i int64, blockhash string, ts int64, cl
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "1155",
+		Kind:      "erc1155",
 		TokenId:   tokenId.String(),
 	})
 }
@@ -220,7 +220,7 @@ func (self *EthModule) processTransfer(i int64, blockhash string, ts int64, clie
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "20",
+		Kind:      "erc20",
 	})
 }
 func (self *EthModule) processEvent(i int64, blockhash string, ts int64, client *Client) {
@@ -268,7 +268,7 @@ func (self *EthModule) getLogs(i int64, client *Client) []types.Log {
 		var query ethereum.FilterQuery
 		query.FromBlock = big.NewInt(i)
 		query.ToBlock = big.NewInt(i)
-		query.Addresses = self.contracts
+		query.Addresses = self.contracts.Addresses()
 		logs, err = client.FilterLogs(ctx, query)
 
 		ch <- 0

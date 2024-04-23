@@ -20,6 +20,35 @@ const (
 	clientWait = 3 * time.Second
 )
 
+type contract struct {
+	Address common.Address
+	Name    string
+}
+type contracts struct {
+	addresses []common.Address
+	names     map[string]string
+}
+
+func (s *contracts) Len() int {
+	return len(s.addresses)
+}
+func (s *contracts) Add(addr common.Address, name string) {
+	s.addresses = append(s.addresses, addr)
+	s.names[addr.Hex()] = name
+}
+func (s *contracts) Del(addr common.Address) {
+	for i, c := range s.addresses {
+		if c.Cmp(addr) == 0 {
+			s.addresses = append(s.addresses[:i], s.addresses[i+1:]...)
+			delete(s.names, addr.Hex())
+			break
+		}
+	}
+}
+func (s *contracts) Addresses() []common.Address {
+	return s.addresses
+}
+
 type EthModule struct {
 	ctx    context.Context
 	exit   chan bool
@@ -30,7 +59,7 @@ type EthModule struct {
 	name    string
 	chainId int64
 
-	contracts []common.Address
+	contracts contracts
 
 	client *Client
 
@@ -78,17 +107,20 @@ type EthModule struct {
 
 // self.loop()
 
-func NewEthModule(ctx context.Context, name string, rpcList []string, addresses []common.Address, heigh int64, logger *glog.Logger) *EthModule {
+func NewEthModule(ctx context.Context, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
 	s := &EthModule{
-		ctx:        ctx,
-		name:       name,
-		lastBlock:  heigh,
-		rpcList:    rpcList,
-		logger:     logger,
-		exit:       make(chan bool),
-		pause:      make(chan bool),
-		closed:     false,
-		contracts:  addresses,
+		ctx:       ctx,
+		name:      name,
+		lastBlock: heigh,
+		rpcList:   rpcList,
+		logger:    logger,
+		exit:      make(chan bool),
+		pause:     make(chan bool),
+		closed:    false,
+		contracts: contracts{
+			addresses: []common.Address{},
+			names:     map[string]string{},
+		},
 		chaincfgdb: mpcdao.NewChainCfg(),
 	}
 	////
@@ -348,12 +380,15 @@ func (self *EthModule) UpdateRpc(rpcs string) {
 }
 
 // /
-func (self *EthModule) UpdateContract(contract common.Address) {
-	self.contracts = append(self.contracts, contract)
+func (self *EthModule) UpdateContract(addr common.Address, name string) {
+	self.contracts.Add(addr, name)
 }
-func (self *EthModule) DelContract(contract common.Address) {
-	for i, _ := range self.contracts {
-		self.contracts = append(self.contracts[:i], self.contracts[i+1:]...)
-		break
-	}
+func (self *EthModule) DelContract(addr common.Address) {
+	self.contracts.Del(addr)
+	// for i, c := range self.contracts {
+	// 	if c.Address == contract.Address {
+	// 		self.contracts = append(self.contracts[:i], self.contracts[i+1:]...)
+	// 		break
+	// 	}
+	// }
 }

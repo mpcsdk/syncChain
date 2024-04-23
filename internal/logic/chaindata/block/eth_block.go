@@ -114,6 +114,7 @@ func (self *EthModule) processBlock() {
 					GasPrice:  gasPrice,
 					LogIdx:    -1,
 					Nonce:     int64(tx.Nonce()),
+					Kind:      "external",
 				}
 				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
 				if err != nil {
@@ -177,6 +178,7 @@ func (self *EthModule) processBlock() {
 					GasPrice:  gasPrice,
 					LogIdx:    -1,
 					Nonce:     int64(tx.Nonce()),
+					Kind:      "",
 				}
 				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
 				if err != nil {
@@ -195,7 +197,7 @@ func (self *EthModule) processBlock() {
 
 		}
 
-		if 0 != len(self.contracts) {
+		if 0 != self.contracts.Len() {
 			self.processEvent(i, blockhashString, int64(block.Time()), client)
 		}
 
