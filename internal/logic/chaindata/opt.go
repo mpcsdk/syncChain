@@ -17,7 +17,7 @@ func (s *sChainData) addOpt(data *entity.Chaincfg) {
 		g.Log().Error(s.ctx, "GetContractRuleBriefs:", err)
 	}
 	///
-	module := block.NewEthModule(s.ctx, data.Coin, rpcs, data.Heigh, g.Log("blocklog"))
+	module := block.NewEthModule(s.ctx, data.ChainId, data.Coin, rpcs, data.Heigh, g.Log("blocklog"))
 	for _, v := range briefs {
 		module.UpdateContract(common.HexToAddress(v.ContractAddress), v.ContractName)
 	}

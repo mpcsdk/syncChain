@@ -110,9 +110,10 @@ type EthModule struct {
 
 // self.loop()
 
-func NewEthModule(ctx context.Context, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
+func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
 	s := &EthModule{
 		ctx:       ctx,
+		chainId:   chainid,
 		name:      name,
 		lastBlock: heigh,
 		rpcList:   rpcList,
