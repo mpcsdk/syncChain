@@ -29,6 +29,9 @@ type contracts struct {
 	names     map[string]string
 }
 
+func (s *contracts) Name(addr string) string {
+	return s.names[addr]
+}
 func (s *contracts) Len() int {
 	return len(s.addresses)
 }
