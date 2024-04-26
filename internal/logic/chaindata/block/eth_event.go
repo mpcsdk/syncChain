@@ -242,14 +242,14 @@ func (self *EthModule) processEvent(i int64, blockhash string, ts int64, client 
 			} else if len(log.Topics) == 4 {
 				self.process721(i, blockhash, ts, client, log)
 			} else {
-				self.logger.Info(self.ctx, "unknown transfer topic: ", log)
+				self.logger.Notice(self.ctx, "unknown transfer topic: ", log)
 			}
 		case signalTopic:
 			self.process1155Signal(i, blockhash, ts, client, log)
 		case mulTopic:
 			self.process1155Batch(i, blockhash, ts, client, log)
 		default:
-			self.logger.Info(self.ctx, "unknown event topic:", log)
+			self.logger.Debug(self.ctx, "unknown event topic:", log)
 		}
 	}
 	// if log.Topics[0] != "transfer" {
