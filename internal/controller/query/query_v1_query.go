@@ -20,7 +20,7 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 	if req.StartTime >= req.EndTime {
 		return nil, mpccode.CodeParamInvalid("startTime >= endTime")
 	}
-	if req.Page < 0 || req.PageSize <= 0 {
+	if req.Page < 0 || req.PageSize < 0 {
 		return nil, mpccode.CodeParamInvalid("page or pageSize invalid")
 	}
 	///
