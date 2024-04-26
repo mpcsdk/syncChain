@@ -14,6 +14,7 @@ import (
 
 func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.QueryRes, err error) {
 	g.Log().Debug(ctx, "Query req:", req)
+	///
 	if req.From == "" && req.To == "" && req.Contract == "" {
 		return nil, mpccode.CodeParamInvalid("from, to, contract can't be all empty")
 	}
@@ -25,6 +26,8 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 	}
 	///
 	query := &mpcdao.QueryData{
+		ChainId: req.ChainId,
+		Kind:    req.Kind,
 		From: func() string {
 			if req.From == "" {
 				return ""
