@@ -13,29 +13,18 @@ import (
 )
 
 type sDB struct {
-	jet       jetstream.JetStream
-	chainData *mpcdao.ChainData
+	jet          jetstream.JetStream
+	chainData    *mpcdao.ChainData
+	riskCtrlRule *mpcdao.RiskCtrlRule
+	// s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
 }
-
-// func (s *sDB) Insert(ctx context.Context, data *entity.ChainData) error {
-// 	err := s.chainData.Insert(ctx, data)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	////sync tx to mq
-// 	d, _ := json.Marshal(data)
-// 	s.jet.PublishAsync(mq.JetSub_ChainTx, d)
-// 	///
-// 	return nil
-// }
-// func (s *sDB) Query(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainData, error) {
-// 	return s.chainData.Query(ctx, query)
-// }
 
 func (s *sDB) ChainData() *mpcdao.ChainData {
 	return s.chainData
 }
-
+func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
+	return s.riskCtrlRule
+}
 func new() *sDB {
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)
 	jet, err := nats.JetStream()
@@ -54,8 +43,9 @@ func new() *sDB {
 	}
 	///
 	return &sDB{
-		jet:       jet,
-		chainData: mpcdao.NewChainData(r, conf.Config.Cache.SessionDuration),
+		jet:          jet,
+		chainData:    mpcdao.NewChainData(r, conf.Config.Cache.SessionDuration),
+		riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
 	}
 }
 func init() {

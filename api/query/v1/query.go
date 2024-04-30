@@ -40,3 +40,22 @@ type StateRes struct {
 	g.Meta `mime:"text/html" example:"string"`
 	Result interface{} `json:"result"`
 }
+
+// //
+type ContractReq struct {
+	g.Meta   `path:"/contracts" tags:"state" method:"post" summary:"You first hello api"`
+	ChainId  int64  `json:"chainId"`
+	Contract string `json:"contract"`
+}
+type ContractResData struct {
+	ChainId  int64  `json:"chainId"`
+	Contract string `json:"contract"`
+	Name     string `json:"name"`
+	Kind     string `json:"kind"`
+	Decimal  int    `json:"decimal"`
+}
+
+type ContractRes struct {
+	g.Meta    `mime:"text/html" example:"string"`
+	Contracts []*ContractResData `json:"contracts"`
+}

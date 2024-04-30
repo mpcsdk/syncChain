@@ -12,6 +12,7 @@ import (
 type (
 	IDB interface {
 		ChainData() *mpcdao.ChainData
+		ContractAbi() *mpcdao.RiskCtrlRule
 	}
 )
 

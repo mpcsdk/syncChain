@@ -7,5 +7,4 @@ package logic
 import (
 	_ "syncChain/internal/logic/chaindata"
 	_ "syncChain/internal/logic/db"
-	_ "syncChain/internal/logic/signal"
 )
