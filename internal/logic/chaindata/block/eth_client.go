@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -64,7 +65,7 @@ type EthModule struct {
 
 	contracts contracts
 
-	client *Client
+	client *util.Client
 
 	// last block from client
 	lastBlockFromClient int64
@@ -87,28 +88,28 @@ type EthModule struct {
 	chaincfgdb *mpcdao.ChainCfg
 }
 
-// self.exit = make(chan byte)
-// self.closed = false
-// self.lock = sync.Mutex{}
-// // self.logger = log.GetLoggerByIndex(log.EVENT, self.name)
+// s.exit = make(chan byte)
+// s.closed = false
+// s.lock = sync.Mutex{}
+// // s.logger = log.GetLoggerByIndex(log.EVENT, s.name)
 
-// // heightStr := common2.GlobalConf.GetString(chainsHeight, self.name, "0")
-// self.lastBlock = heigh
+// // heightStr := common2.GlobalConf.GetString(chainsHeight, s.name, "0")
+// s.lastBlock = heigh
 
-// self.list = make([]common.Address, 0)
-// if self.name == "rpg" {
-// 	self.list = append(self.list, rpgAddr)
+// s.list = make([]common.Address, 0)
+// if s.name == "rpg" {
+// 	s.list = append(s.list, rpgAddr)
 // }
 
 // ///
-// self.list = addresses
+// s.list = addresses
 // //
 
-// self.blockTimer = time.NewTimer(2 * time.Second)
-// self.clientTimer = time.NewTimer(1 * time.Second)
-// self.clientTimer.Stop()
+// s.blockTimer = time.NewTimer(2 * time.Second)
+// s.clientTimer = time.NewTimer(1 * time.Second)
+// s.clientTimer.Stop()
 
-// self.loop()
+// s.loop()
 
 func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
 	s := &EthModule{
@@ -132,79 +133,79 @@ func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []str
 	s.clientTimer = time.NewTimer(1 * time.Second)
 	s.clientTimer.Stop()
 	s.blockTimer.Stop()
-	// self.logger = log.GetLoggerByIndex(log.EVENT, self.name)
-	// heightStr := common2.GlobalConf.GetString(chainsHeight, self.name, "0")
+	// s.logger = log.GetLoggerByIndex(log.EVENT, s.name)
+	// heightStr := common2.GlobalConf.GetString(chainsHeight, s.name, "0")
 
 	///
-
+	s.lastBlock = 74734134
 	s.loop()
 	//
 	return s
 }
 
-func (self *EthModule) loop() {
+func (s *EthModule) loop() {
 	go func() {
 		for {
 			select {
-			case <-self.clientTimer.C:
+			case <-s.clientTimer.C:
 				func() {
-					self.lock.Lock()
-					defer self.lock.Unlock()
+					s.lock.Lock()
+					defer s.lock.Unlock()
 
-					self.logger.Warningf(self.ctx, "%s clientTimer getClient", self.name)
-					self.getClient()
+					s.logger.Warningf(s.ctx, "%s clientTimer getClient", s.name)
+					s.getClient()
 				}()
 				break
 
-			case <-self.blockTimer.C:
-				self.processBlock()
+			case <-s.blockTimer.C:
+				s.processBlock()
 				break
-			case p := <-self.pause:
+			case p := <-s.pause:
 				if p {
-					self.logger.Notice(self.ctx, "pause:", self.name)
-					self.blockTimer.Stop()
-					self.clientTimer.Stop()
+					s.logger.Notice(s.ctx, "pause:", s.name)
+					s.blockTimer.Stop()
+					s.clientTimer.Stop()
 				} else {
-					self.logger.Notice(self.ctx, "continue:", self.name)
-					self.blockTimer.Reset(blockWait)
+					s.logger.Notice(s.ctx, "continue:", s.name)
+					s.blockTimer.Reset(blockWait)
 				}
-			case <-self.exit:
-				self.logger.Debugf(self.ctx, "exit, at height: %d", self.lastBlock)
+			case <-s.exit:
+				s.logger.Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
 				return
 			}
 		}
 	}()
 }
 
-func (self *EthModule) getChainId() int64 {
+func (s *EthModule) getChainId() int64 {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	id, err := self.client.ChainID(ctx)
+	id, err := s.client.ChainID(ctx)
 	if err != nil {
-		self.logger.Errorf(self.ctx, "%s fail to get chainId, err: %s, close client and reconnect", self.name, err)
-		self.closeClient()
+		s.logger.Errorf(s.ctx, "%s fail to get chainId, err: %s, close client and reconnect", s.name, err)
+		s.closeClient()
 		return 0
 	}
 
 	// success, but no result
 	if nil == id {
-		self.logger.Errorf(self.ctx, "%s fail to get chainId, no id, close client and reconnect", self.name)
-		self.closeClient()
+		s.logger.Errorf(s.ctx, "%s fail to get chainId, no id, close client and reconnect", s.name)
+		s.closeClient()
 	}
 
 	chainId := id.Int64()
-	self.logger.Warningf(self.ctx, "%s get chainId: %d", self.name, self.chainId)
+	s.logger.Warningf(s.ctx, "%s get chainId: %d", s.name, s.chainId)
 	if 0 == chainId {
-		self.logger.Errorf(self.ctx, "%s fail to get chainId, close client and reconnect", self.name)
+		s.logger.Errorf(s.ctx, "%s fail to get chainId, close client and reconnect", s.name)
 	}
 	return chainId
 }
 
-// func (self *EthModule) initChainId() {
+// func (s *EthModule) initChainId() {
 // 	for {
-// 		client := self.getClient()
+// 		client := s.getClient()
 // 		if nil == client {
 // 			time.Sleep(1 * time.Second)
 // 			continue
@@ -227,79 +228,79 @@ func (self *EthModule) getChainId() int64 {
 // 			select {
 // 			case <-ch:
 // 				if err != nil {
-// 					self.logger.Errorf(self.ctx, "%s fail to get chainId, err: %s, close client and reconnect", self.name, err)
-// 					self.closeClient()
+// 					s.logger.Errorf(s.ctx, "%s fail to get chainId, err: %s, close client and reconnect", s.name, err)
+// 					s.closeClient()
 // 					return
 // 				}
 
 // 				// success, but no result
 // 				if nil == id {
-// 					self.logger.Errorf(self.ctx, "%s fail to get chainId, no id, close client and reconnect", self.name)
-// 					self.closeClient()
+// 					s.logger.Errorf(s.ctx, "%s fail to get chainId, no id, close client and reconnect", s.name)
+// 					s.closeClient()
 // 				}
 
-// 				self.chainId = id.Int64()
-// 				self.logger.Warningf(self.ctx, "%s get chainId: %d", self.name, self.chainId)
+// 				s.chainId = id.Int64()
+// 				s.logger.Warningf(s.ctx, "%s get chainId: %d", s.name, s.chainId)
 // 				return
 // 			case <-ctx.Done():
-// 				self.logger.Errorf(self.ctx, "%s fail to get logs, err: timeout, close client and reconnect", self.name)
-// 				self.closeClient()
+// 				s.logger.Errorf(s.ctx, "%s fail to get logs, err: timeout, close client and reconnect", s.name)
+// 				s.closeClient()
 // 				return
 // 			}
 // 		}()
 
-// 		if 0 != self.chainId {
+// 		if 0 != s.chainId {
 // 			return
 // 		}
-// 		self.logger.Errorf(self.ctx, "%s fail to get chainId, close client and reconnect", self.name)
+// 		s.logger.Errorf(s.ctx, "%s fail to get chainId, close client and reconnect", s.name)
 // 		time.Sleep(1 * time.Second)
 // 	}
 
 // }
 
-func (self *EthModule) getClient() *Client {
-	if self.client != nil {
-		return self.client
+func (s *EthModule) getClient() *util.Client {
+	if s.client != nil {
+		return s.client
 	}
 
-	url := self.getURL()
-	client, err := Dial(url)
+	url := s.getURL()
+	client, err := util.Dial(url)
 
 	if err != nil {
-		self.logger.Errorf(self.ctx, "fail to dial: %s", url)
-		self.clientTimer.Reset(clientWait)
+		s.logger.Errorf(s.ctx, "fail to dial: %s", url)
+		s.clientTimer.Reset(clientWait)
 		return nil
 	} else {
-		self.logger.Infof(self.ctx, "dialed: %s", url)
+		s.logger.Infof(s.ctx, "dialed: %s", url)
 	}
 
-	self.client = client
+	s.client = client
 	return client
 }
 
-func (self *EthModule) getURL() string {
-	index := time.Now().Second() % len(self.rpcList)
-	return strings.TrimSpace(self.rpcList[index])
+func (s *EthModule) getURL() string {
+	index := time.Now().Second() % len(s.rpcList)
+	return strings.TrimSpace(s.rpcList[index])
 }
 
-func (self *EthModule) closeClient() {
+func (s *EthModule) closeClient() {
 	defer func() {
-		if nil != self.clientTimer {
-			self.clientTimer.Reset(clientWait)
+		if nil != s.clientTimer {
+			s.clientTimer.Reset(clientWait)
 		}
 
-		self.count = 0
+		s.count = 0
 	}()
 
-	if self.client == nil {
+	if s.client == nil {
 		return
 	}
 
-	self.client.Close()
-	self.client = nil
+	s.client.Close()
+	s.client = nil
 }
 
-func (self *EthModule) getHeader(client *Client) *types.Header {
+func (s *EthModule) getHeader(client *util.Client) *types.Header {
 	var (
 		header *types.Header
 		err    error
@@ -317,81 +318,81 @@ func (self *EthModule) getHeader(client *Client) *types.Header {
 	select {
 	case <-ch:
 		if err != nil {
-			self.logger.Errorf(self.ctx, "fail to get blockHeader, err: %s, close client and reconnect", err)
-			self.closeClient()
+			s.logger.Errorf(s.ctx, "fail to get blockHeader, err: %s, close client and reconnect", err)
+			s.closeClient()
 			return nil
 		}
 		return header
 	case <-ctx.Done():
-		self.logger.Errorf(self.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
-		self.closeClient()
+		s.logger.Errorf(s.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
+		s.closeClient()
 		return nil
 	}
 
 }
 
-func (self *EthModule) updateHeight() {
-	self.logger.Infof(self.ctx, "chainId:%d, updateHeight: %d", self.chainId, self.lastBlock)
+func (s *EthModule) updateHeight() {
+	s.logger.Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.lastBlock)
 
-	err := self.chaincfgdb.UpdateHeigh(self.ctx, self.chainId, self.lastBlock)
+	err := s.chaincfgdb.UpdateHeigh(s.ctx, s.chainId, s.lastBlock)
 	if err != nil {
-		self.logger.Errorf(self.ctx, "fail to update height, err: %s", err)
+		s.logger.Errorf(s.ctx, "fail to update height, err: %s", err)
 	}
 }
 
 // //
 // //
-func (self *EthModule) Info() string {
-	return fmt.Sprintf("%s|%d|%d,contracts:%d", self.name, self.chainId, self.lastBlock, self.contracts.Len())
+func (s *EthModule) Info() string {
+	return fmt.Sprintf("%s|%d|%d,contracts:%d", s.name, s.chainId, s.lastBlock, s.contracts.Len())
 }
-func (self *EthModule) Close() {
-	if self.closed {
+func (s *EthModule) Close() {
+	if s.closed {
 		return
 	}
-	self.closed = true
-	self.closeClient()
-	self.exit <- true
+	s.closed = true
+	s.closeClient()
+	s.exit <- true
 }
-func (self *EthModule) Pause() {
-	if self.closed {
-		return
-	}
-
-	self.pause <- true
-}
-func (self *EthModule) Continue() {
-	if self.closed {
+func (s *EthModule) Pause() {
+	if s.closed {
 		return
 	}
 
-	self.pause <- false
+	s.pause <- true
+}
+func (s *EthModule) Continue() {
+	if s.closed {
+		return
+	}
+
+	s.pause <- false
 }
 
 // /
-func (self *EthModule) ChainId() int64 {
-	return self.chainId
+func (s *EthModule) ChainId() int64 {
+	return s.chainId
 }
-func (self *EthModule) LastBlock() int64 {
-	return self.lastBlock
-}
-
-// /
-func (self *EthModule) Start() {
-	self.blockTimer.Reset(blockWait)
-}
-func (self *EthModule) UpdateRpc(rpcs string) {
-	self.rpcList = strings.Split(rpcs, ",")
+func (s *EthModule) LastBlock() int64 {
+	return s.lastBlock
 }
 
 // /
-func (self *EthModule) UpdateContract(addr common.Address, name string) {
-	self.contracts.Add(addr, name)
+func (s *EthModule) Start() {
+	s.blockTimer.Reset(blockWait)
 }
-func (self *EthModule) DelContract(addr common.Address) {
-	self.contracts.Del(addr)
-	// for i, c := range self.contracts {
+func (s *EthModule) UpdateRpc(rpcs string) {
+	s.rpcList = strings.Split(rpcs, ",")
+}
+
+// /
+func (s *EthModule) UpdateContract(addr common.Address, name string) {
+	s.contracts.Add(addr, name)
+}
+func (s *EthModule) DelContract(addr common.Address) {
+	s.contracts.Del(addr)
+	// for i, c := range s.contracts {
 	// 	if c.Address == contract.Address {
-	// 		self.contracts = append(self.contracts[:i], self.contracts[i+1:]...)
+	// 		s.contracts = append(s.contracts[:i], s.contracts[i+1:]...)
 	// 		break
 	// 	}
 	// }

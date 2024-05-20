@@ -9,7 +9,6 @@ import (
 	"syncChain/internal/conf"
 
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
 	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mq"
@@ -103,33 +102,30 @@ func new() *sChainData {
 		return nil
 	})
 
-	p, err := gcmd.Parse(g.MapStrBool{
-		"s,sync": false,
+	// p, err := gcmd.Parse(g.MapStrBool{
+	// 	"s,sync": false,
+	// })
+	// if err != nil {
+	// 	panic(err)
+	// }
+	////
+	//natsmq
+	natsmq.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
+		g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
+		return nil
 	})
+	///
+	g.Log().Notice(s.ctx, "Sycn mode")
+	///
+	allcfg, err := s.chainCfg.AllCfg(s.ctx)
 	if err != nil {
 		panic(err)
 	}
-	////
-	if p.GetOpt("sync") != nil {
-		//natsmq
-		natsmq.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
-			g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
-			return nil
-		})
-		///
-		g.Log().Notice(s.ctx, "Sycn mode")
-		///
-		allcfg, err := s.chainCfg.AllCfg(s.ctx)
-		if err != nil {
-			panic(err)
-		}
-		for _, v := range allcfg {
-			s.addOpt(v)
-		}
-		///
-	} else {
-		g.Log().Notice(s.ctx, "Api mode")
+	for _, v := range allcfg {
+		s.addOpt(v)
 	}
+	///
+
 	s.logLoop()
 	///
 	return s

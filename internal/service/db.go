@@ -6,12 +6,17 @@
 package service
 
 import (
+	"context"
+
 	"github.com/mpcsdk/mpcCommon/mpcdao"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 type (
 	IDB interface {
-		ChainData() *mpcdao.ChainData
+		QueryTransfer(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error)
+		InsertTransfer(ctx context.Context, data *entity.ChainTransfer) error
+		InsertTransferBatch(ctx context.Context, datas []*entity.ChainTransfer) error
 		ContractAbi() *mpcdao.RiskCtrlRule
 	}
 )

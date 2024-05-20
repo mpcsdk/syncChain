@@ -7,6 +7,7 @@ import (
 	"sync"
 	common2 "syncChain/internal/logic/chaindata/common"
 	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
 	"time"
 
@@ -32,55 +33,58 @@ var (
 	}
 )
 
-func (self *EthModule) processBlock() {
-	self.lock.Lock()
+func (s *EthModule) processTx() {
+
+}
+func (s *EthModule) processBlock() {
+	s.lock.Lock()
 	defer func() {
-		self.blockTimer.Reset(blockWait)
-		self.lock.Unlock()
+		s.blockTimer.Reset(blockWait)
+		s.lock.Unlock()
 	}()
 
-	client := self.getClient()
+	client := s.getClient()
 	if nil == client {
-		self.logger.Errorf(self.ctx, "fail to get client")
+		s.logger.Errorf(s.ctx, "fail to get client")
 		return
 	}
 
-	header := self.getHeader(client)
+	header := s.getHeader(client)
 	if nil == header {
 		return
 	}
 
 	topHeight := header.Number.Int64()
-	if self.lastBlock == 0 {
-		self.lastBlock = topHeight
+	if s.lastBlock == 0 {
+		s.lastBlock = topHeight
 	}
-	self.logger.Debugf(self.ctx, "get header. height: %d, hash: %s", topHeight, header.Hash().String())
+	s.logger.Debugf(s.ctx, "get header. height: %d, hash: %s", topHeight, header.Hash().String())
 
 	last := topHeight - 12
-	if last == self.lastBlockFromClient {
-		self.count++
-		if self.count == 6 {
-			self.logger.Warningf(self.ctx, "get max retry count, close client and reconnect")
-			self.closeClient()
+	if last == s.lastBlockFromClient {
+		s.count++
+		if s.count == 6 {
+			s.logger.Warningf(s.ctx, "get max retry count, close client and reconnect")
+			s.closeClient()
 			return
 		}
 	} else {
-		self.count = 0
-		self.lastBlockFromClient = last
+		s.count = 0
+		s.lastBlockFromClient = last
 	}
 
-	if last <= self.lastBlock {
-		self.logger.Infof(self.ctx, "no need to processBlock, remote: %d, local: %d", last, self.lastBlock)
+	if last <= s.lastBlock {
+		s.logger.Infof(s.ctx, "no need to processBlock, remote: %d, local: %d", last, s.lastBlock)
 		return
 	}
 
-	self.logger.Debugf(self.ctx, "chainId:%d , start getting blocks. from %d to %d", self.chainId, self.lastBlock, last)
-	for i := self.lastBlock + 1; i < last; i++ {
-		block, blockhash, txFroms, txHashes := self.getBlock(i, client)
+	s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks. from %d to %d", s.chainId, s.lastBlock, last)
+	for i := s.lastBlock + 1; i < last; i++ {
+		block, blockhash, txFroms, txHashes := s.getBlock(i, client)
 		if nil == block {
 			return
 		}
-		self.logger.Debugf(self.ctx, "getBlock,chainId:%d , block:%d, txCount: %d", self.chainId, i, len(block.Transactions()))
+		s.logger.Debugf(s.ctx, "getBlock,chainId:%d , block:%d, txCount: %d", s.chainId, i, len(block.Transactions()))
 
 		blockhashString := block.Hash().String()
 		if nil != blockhash {
@@ -99,7 +103,7 @@ func (self *EthModule) processBlock() {
 			if nil != txFroms[index] {
 				fromAddr := txFroms[index].String()
 				txhash := txHashes[index].String()
-				data := &entity.ChainData{
+				data := &entity.ChainTransfer{
 					ChainId:   tx.ChainId().Int64(),
 					Height:    i,
 					BlockHash: blockhashString,
@@ -116,24 +120,24 @@ func (self *EthModule) processBlock() {
 					Nonce:     int64(tx.Nonce()),
 					Kind:      "external",
 				}
-				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
+				err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
 				if err != nil {
 					switch v := gerror.Cause(err).(type) {
 					case *pq.Error:
 						if v.Code == "23505" { // unique_violation
-							g.Log().Warning(self.ctx, "duplicate tx, txhash: ", data)
+							g.Log().Warning(s.ctx, "duplicate tx, txhash: ", data)
 						} else {
-							g.Log().Fatal(self.ctx, "fail to insert tx, err: ", err)
+							g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
 						}
 					default:
-						g.Log().Fatal(self.ctx, "fail to insert tx, err: ", err)
+						g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
 					}
 				}
 				continue
 			}
 
 			var hash common.Hash
-			v, r, s := tx.RawSignatureValues()
+			v, r, S := tx.RawSignatureValues()
 			V := v
 			if tx.Protected() {
 				V = new(big.Int).Sub(v, new(big.Int).Mul(tx.ChainId(), big.NewInt(2)))
@@ -158,12 +162,12 @@ func (self *EthModule) processBlock() {
 					tx.Data(),
 				})
 			}
-			fromAddr, err := common2.RecoverPlain(hash, r, s, V)
+			fromAddr, err := common2.RecoverPlain(hash, r, S, V)
 			txHash := tx.Hash().String()
 			if nil != err {
-				self.logger.Errorf(self.ctx, "fail to calc fromAddr, txhash: %s", txHash)
+				s.logger.Errorf(s.ctx, "fail to calc fromAddr, txhash: %s", txHash)
 			} else {
-				data := &entity.ChainData{
+				data := &entity.ChainTransfer{
 					ChainId:   tx.ChainId().Int64(),
 					Height:    i,
 					BlockHash: blockhashString,
@@ -180,33 +184,35 @@ func (self *EthModule) processBlock() {
 					Nonce:     int64(tx.Nonce()),
 					Kind:      "",
 				}
-				err := service.DB().ChainData().Insert(gctx.GetInitCtx(), data)
+				err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
 				if err != nil {
 					switch v := err.(type) {
 					case *pq.Error:
 						if v.Code == "23505" { // unique_violation
-							g.Log().Warning(self.ctx, "duplicate tx, txhash:", data)
+							g.Log().Warning(s.ctx, "duplicate tx, txhash:", data)
 						} else {
-							g.Log().Fatal(self.ctx, "fail to insert tx, err: ", err)
+							g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
 						}
 					default:
-						g.Log().Fatal(self.ctx, "fail to insert tx, err: ", err)
+						g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
 					}
 				}
 			}
 
 		}
-
-		if 0 != self.contracts.Len() {
-			self.processEvent(i, blockhashString, int64(block.Time()), client)
+		/////event
+		for _, tx := range block.Transactions() {
+			if 0 != s.contracts.Len() {
+				s.processEvent(tx.Hash(), int64(block.Time()), client)
+			}
 		}
-
-		self.lastBlock = i
-		self.updateHeight()
+		////
+		s.lastBlock = i
+		s.updateHeight()
 	}
 }
 
-func (self *EthModule) getBlock(i int64, client *Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {
+func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {
 	var (
 		block    *types.Block
 		hash     *common.Hash
@@ -227,15 +233,15 @@ func (self *EthModule) getBlock(i int64, client *Client) (*types.Block, *common.
 	select {
 	case <-ch:
 		if err != nil {
-			self.logger.Errorf(self.ctx, "fail to get block, err: %s, close client and reconnect", err)
-			self.closeClient()
+			s.logger.Errorf(s.ctx, "fail to get block, err: %s, close client and reconnect", err)
+			s.closeClient()
 			return nil, nil, nil, nil
 		}
 
 		return block, hash, txFroms, txHashes
 	case <-ctx.Done():
-		self.logger.Errorf(self.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
-		self.closeClient()
+		s.logger.Errorf(s.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
+		s.closeClient()
 		return nil, nil, nil, nil
 	}
 }
