@@ -12,15 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func (s *EthModule) processEvent(txHash common.Hash, ts int64, client *util.Client) {
-	receipt := s.getReceipt(txHash, client)
-	if nil == receipt {
-		return
-	}
+func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Receipt) {
 
 	for _, log := range receipt.Logs {
 		topic := log.Topics[0].String()
-		s.logger.Debugf(s.ctx, "chainId:%d,block:%d, tx: %s, get transfer data: %v", s.chainId, log.BlockNumber, log.TxHash.String(), log.Data)
+		s.logger.Debugf(s.ctx, "chainId:%d,block:%d, tx: %s, get transfer data: %s", s.chainId, log.BlockNumber, log.TxHash.String(), log.Data)
 
 		switch topic {
 		case transferTopic:
