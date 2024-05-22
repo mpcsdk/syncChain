@@ -23,13 +23,13 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 			if len(log.Topics) == 3 {
 				err := event.Process20(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 				if err != nil {
-					s.logger.Warningf(s.ctx, "fail to unpack data.  err: %s", err)
+					s.logger.Fatal(s.ctx, "fail to Process20.  err:", err)
 					continue
 				}
 			} else if len(log.Topics) == 4 {
 				err := event.Process721(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 				if err != nil {
-					s.logger.Warningf(s.ctx, "fail to unpack data.  err: %s", err)
+					s.logger.Fatal(s.ctx, "fail to Process721.  err:", err)
 					continue
 				}
 			} else {
@@ -38,13 +38,13 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 		case signalTopic:
 			err := event.Process1155Signal(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 			if err != nil {
-				s.logger.Warningf(s.ctx, "fail to unpack data.  err: %s", err)
+				s.logger.Fatal(s.ctx, "fail to Process1155Signal.  err: ", err)
 				continue
 			}
 		case mulTopic:
 			err := event.Process1155Batch(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 			if err != nil {
-				s.logger.Warningf(s.ctx, "fail to unpack data.  err: %s", err)
+				s.logger.Fatal(s.ctx, "fail to Process1155Batch.  err: ", err)
 				continue
 			}
 		default:
@@ -112,7 +112,7 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Errorf(s.ctx, "fail to get logs,query:", query, "err: s", err)
+			s.logger.Error(s.ctx, "fail to get logs,query:", query, "err: s", err)
 			s.closeClient()
 			return nil
 		}
