@@ -203,61 +203,6 @@ func (s *EthModule) getChainId() int64 {
 	return chainId
 }
 
-// func (s *EthModule) initChainId() {
-// 	for {
-// 		client := s.getClient()
-// 		if nil == client {
-// 			time.Sleep(1 * time.Second)
-// 			continue
-// 		}
-
-// 		func() {
-// 			ch := make(chan byte, 1)
-// 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 			defer cancel()
-
-// 			var (
-// 				id  *big.Int
-// 				err error
-// 			)
-// 			go func() {
-// 				id, err = client.ChainID(ctx)
-// 				ch <- 0
-// 			}()
-
-// 			select {
-// 			case <-ch:
-// 				if err != nil {
-// 					s.logger.Errorf(s.ctx, "%s fail to get chainId, err: %s, close client and reconnect", s.name, err)
-// 					s.closeClient()
-// 					return
-// 				}
-
-// 				// success, but no result
-// 				if nil == id {
-// 					s.logger.Errorf(s.ctx, "%s fail to get chainId, no id, close client and reconnect", s.name)
-// 					s.closeClient()
-// 				}
-
-// 				s.chainId = id.Int64()
-// 				s.logger.Warningf(s.ctx, "%s get chainId: %d", s.name, s.chainId)
-// 				return
-// 			case <-ctx.Done():
-// 				s.logger.Errorf(s.ctx, "%s fail to get logs, err: timeout, close client and reconnect", s.name)
-// 				s.closeClient()
-// 				return
-// 			}
-// 		}()
-
-// 		if 0 != s.chainId {
-// 			return
-// 		}
-// 		s.logger.Errorf(s.ctx, "%s fail to get chainId, close client and reconnect", s.name)
-// 		time.Sleep(1 * time.Second)
-// 	}
-
-// }
-
 func (s *EthModule) getClient() *util.Client {
 	if s.client != nil {
 		return s.client

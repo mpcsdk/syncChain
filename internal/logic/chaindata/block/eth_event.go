@@ -77,13 +77,13 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Errorf(s.ctx, "fail to get logs, err: %s, close client and reconnect", err)
+			s.logger.Error(s.ctx, "fail to TransactionReceipt:", txHash, "err:", err)
 			s.closeClient()
 			return nil
 		}
 		return receipt
 	case <-ctx.Done():
-		s.logger.Errorf(s.ctx, "fail to get logs, err: timeout, close client and reconnect")
+		s.logger.Errorf(s.ctx, "fail to get TransactionReceipt, err: timeout, close client and reconnect")
 		s.closeClient()
 		return nil
 	}
@@ -99,8 +99,8 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	var query ethereum.FilterQuery
 	go func() {
-		var query ethereum.FilterQuery
 		query.FromBlock = big.NewInt(i)
 		query.ToBlock = big.NewInt(i)
 		query.Addresses = s.contracts.Addresses()
@@ -112,7 +112,7 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Errorf(s.ctx, "fail to get logs, err: %s, close client and reconnect", err)
+			s.logger.Errorf(s.ctx, "fail to get logs,query:", query, "err: s", err)
 			s.closeClient()
 			return nil
 		}
