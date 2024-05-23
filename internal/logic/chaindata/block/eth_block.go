@@ -72,7 +72,7 @@ func (s *EthModule) processBlock() {
 		if nil == block {
 			return
 		}
-		s.logger.Debugf(s.ctx, "getBlock,chainId:%d , block:%d, txCount: %d", s.chainId, i, len(block.Transactions()))
+		s.logger.Debugf(s.ctx, "getBlock,chainId:%d , block:%s,number:%d, txCount: %d", s.chainId, block.Hash().String(), i, len(block.Transactions()))
 
 		// blockhashString := block.Hash().String()
 		// if nil != blockhash {

@@ -10,25 +10,45 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/lib/pq"
+	// "github.com/lib/pq"
 )
 
+func isDuplicateKeyErr(err error) bool {
+	gerr := err.(*gerror.Error)
+	if cerr, ok := gerr.Cause().(*pq.Error); ok {
+		if cerr.Code == "23505" {
+			return true
+		}
+	}
+	return false
+}
 func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Receipt) {
 
 	for _, log := range receipt.Logs {
 		topic := log.Topics[0].String()
-		s.logger.Debugf(s.ctx, "chainId:%d,block:%d, tx: %s, get transfer data: %s", s.chainId, log.BlockNumber, log.TxHash.String(), log.Data)
+		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
 
 		switch topic {
 		case transferTopic:
 			if len(log.Topics) == 3 {
 				err := event.Process20(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 				if err != nil {
+					if isDuplicateKeyErr(err) {
+						s.logger.Warning(s.ctx, "fail to Process20.  err:", err)
+						continue
+					}
 					s.logger.Fatal(s.ctx, "fail to Process20.  err:", err)
 					continue
 				}
 			} else if len(log.Topics) == 4 {
 				err := event.Process721(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 				if err != nil {
+					if isDuplicateKeyErr(err) {
+						s.logger.Warning(s.ctx, "fail to Process721.  err:", err)
+						continue
+					}
 					s.logger.Fatal(s.ctx, "fail to Process721.  err:", err)
 					continue
 				}
@@ -38,12 +58,20 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 		case signalTopic:
 			err := event.Process1155Signal(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 			if err != nil {
+				if isDuplicateKeyErr(err) {
+					s.logger.Warning(s.ctx, "fail to Process1155Signal.  err:", err)
+					continue
+				}
 				s.logger.Fatal(s.ctx, "fail to Process1155Signal.  err: ", err)
 				continue
 			}
 		case mulTopic:
 			err := event.Process1155Batch(s.ctx, s.chainId, ts, log, int64(receipt.Status))
 			if err != nil {
+				if isDuplicateKeyErr(err) {
+					s.logger.Warning(s.ctx, "fail to Process1155Batch.  err:", err)
+					continue
+				}
 				s.logger.Fatal(s.ctx, "fail to Process1155Batch.  err: ", err)
 				continue
 			}
@@ -77,6 +105,11 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 	select {
 	case <-ch:
 		if err != nil {
+			if err.Error() == "not found" {
+				return &types.Receipt{
+					Status: types.ReceiptStatusFailed,
+				}
+			}
 			s.logger.Error(s.ctx, "fail to TransactionReceipt:", txHash, "err:", err)
 			s.closeClient()
 			return nil
