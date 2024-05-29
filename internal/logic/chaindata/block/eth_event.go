@@ -145,7 +145,7 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Error(s.ctx, "fail to get logs,query:", query, "err: s", err)
+			s.logger.Error(s.ctx, "fail to get logs,chain:", s.chainId, "query:", query, "err:", err)
 			s.closeClient()
 			return nil
 		}
@@ -156,7 +156,7 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 		}
 		return logs
 	case <-ctx.Done():
-		s.logger.Errorf(s.ctx, "fail to get logs, err: timeout, close client and reconnect")
+		s.logger.Error(s.ctx, "fail to get logs, err: timeout, close client and reconnect:", s.chainId)
 		s.closeClient()
 		return nil
 	}

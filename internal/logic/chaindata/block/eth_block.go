@@ -135,14 +135,14 @@ func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *commo
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Errorf(s.ctx, "fail to get block, err: %s, close client and reconnect", err)
+			s.logger.Error(s.ctx, "fail to get block:", s.chainId, "err:", err)
 			s.closeClient()
 			return nil, nil, nil, nil
 		}
 
 		return block, hash, txFroms, txHashes
 	case <-ctx.Done():
-		s.logger.Errorf(s.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
+		s.logger.Error(s.ctx, "fail to get block:", s.chainId, " timeout, close client and reconnect")
 		s.closeClient()
 		return nil, nil, nil, nil
 	}

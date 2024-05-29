@@ -262,13 +262,13 @@ func (s *EthModule) getHeader(client *util.Client) *types.Header {
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Errorf(s.ctx, "fail to get blockHeader, err: %s, close client and reconnect", err)
+			s.logger.Error(s.ctx, "fail to get blockHeader:", s.chainId, "err:", err)
 			s.closeClient()
 			return nil
 		}
 		return header
 	case <-ctx.Done():
-		s.logger.Errorf(s.ctx, "fail to get blockHeader, err: timeout, close client and reconnect")
+		s.logger.Error(s.ctx, "fail to get blockHeader:", s.chainId, " timeout")
 		s.closeClient()
 		return nil
 	}
