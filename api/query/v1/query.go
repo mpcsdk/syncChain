@@ -27,9 +27,23 @@ type QueryReq struct {
 	Page     int `json:"page"`
 	PageSize int `json:"pageSize"`
 }
+type QueryResult struct {
+	ChainId   int64  `json:"chainId"`
+	BlockHash string `json:"blockHash"`
+	TxHash    string `json:"txHash"`
+	Ts        int64  `json:"ts"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Contract  string `json:"contract"`
+	Kind      string `json:"kind"`
+	Value     string `json:"value"`
+	TokenId   string `json:"tokenId"`
+	Symbol  string `json:"symbol"`
+	Status    int64  `json:"status"`
+}
 type QueryRes struct {
 	g.Meta `mime:"text/html" example:"string"`
-	Result interface{} `json:"result"`
+	Result []*QueryResult `json:"result"`
 }
 
 // //

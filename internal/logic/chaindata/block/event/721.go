@@ -14,7 +14,7 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log, st
 
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
-	tokenId := log.Topics[3].Hex()
+	tokenId := log.Topics[3].Big().String()
 	//
 	// out, err := event721.Inputs.Unpack(log.Data)
 	// if err != nil {

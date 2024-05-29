@@ -15,15 +15,11 @@ import (
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func (s *EthModule) processTx(tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int, ts int64, receipt *types.Receipt) {
+func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int, status int64) {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return
 	}
-	if nil == receipt {
-		return
-	}
-
 	toAddr := tx.To().String()
 	gas := strconv.FormatUint(tx.Gas(), 10)
 	gasPrice := tx.GasPrice().String()
@@ -32,9 +28,9 @@ func (s *EthModule) processTx(tx *types.Transaction, txFroms []*common.Address, 
 		txhash := txHashes[index].String()
 		data := &entity.ChainTransfer{
 			ChainId:   tx.ChainId().Int64(),
-			Height:    receipt.BlockNumber.Int64(),
-			BlockHash: receipt.BlockHash.String(),
-			Ts:        ts,
+			Height:    block.Number().Int64(),
+			BlockHash: block.Hash().Hex(),
+			Ts:        int64(block.Time()),
 			TxHash:    txhash,
 			TxIdx:     index,
 			From:      fromAddr,
@@ -46,7 +42,7 @@ func (s *EthModule) processTx(tx *types.Transaction, txFroms []*common.Address, 
 			LogIdx:    -1,
 			Nonce:     int64(tx.Nonce()),
 			Kind:      "external",
-			Status:    int64(receipt.Status),
+			Status:    status,
 			Removed:   false,
 		}
 		err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
@@ -98,9 +94,9 @@ func (s *EthModule) processTx(tx *types.Transaction, txFroms []*common.Address, 
 	} else {
 		data := &entity.ChainTransfer{
 			ChainId:   tx.ChainId().Int64(),
-			Height:    receipt.BlockNumber.Int64(),
-			BlockHash: receipt.BlockHash.String(),
-			Ts:        ts,
+			Height:    block.Number().Int64(),
+			BlockHash: block.Hash().Hex(),
+			Ts:        int64(block.Time()),
 			TxHash:    txHash,
 			TxIdx:     index,
 			From:      fromAddr.String(),
@@ -111,8 +107,8 @@ func (s *EthModule) processTx(tx *types.Transaction, txFroms []*common.Address, 
 			GasPrice:  gasPrice,
 			LogIdx:    -1,
 			Nonce:     int64(tx.Nonce()),
-			Kind:      "",
-			Status:    int64(receipt.Status),
+			Kind:      "external",
+			Status:    status,
 			Removed:   false,
 		}
 		err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)

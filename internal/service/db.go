@@ -18,6 +18,7 @@ type (
 		InsertTransfer(ctx context.Context, data *entity.ChainTransfer) error
 		InsertTransferBatch(ctx context.Context, datas []*entity.ChainTransfer) error
 		ContractAbi() *mpcdao.RiskCtrlRule
+		ChainCfg() *mpcdao.ChainCfg
 	}
 )
 

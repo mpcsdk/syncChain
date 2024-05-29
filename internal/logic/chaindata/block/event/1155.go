@@ -24,30 +24,9 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 	contractAddr := log.Address.String()
 
 	////
-	pos := int64(0)
-	idlen := out[pos].(*big.Int)
-	pos++
+	tokenIds := out[0].([]*big.Int)
+	vals := out[1].([]*big.Int)
 	///
-	tokenIds := []*big.Int{}
-	for i := int64(0); i < idlen.Int64(); i++ {
-		id := out[i+pos].(*big.Int)
-		pos++
-		tokenIds = append(tokenIds, id)
-	}
-	///
-	vlen := out[pos].(*big.Int)
-	pos++
-	vals := []*big.Int{}
-	for i := int64(0); i < vlen.Int64(); i++ {
-		v := out[i+pos].(*big.Int)
-		pos++
-		vals = append(vals, v)
-	}
-	//
-	// if len(vals) != len(tokenIds) {
-	// 	s.logger.Error(s.ctx, "value and tokenId length not equal")
-	// 	return
-	// }
 	datas := []*entity.ChainTransfer{}
 	for j, v := range vals {
 		t := tokenIds[j]

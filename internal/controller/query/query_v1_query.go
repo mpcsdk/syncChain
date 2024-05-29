@@ -2,6 +2,8 @@ package query
 
 import (
 	"context"
+	"math"
+	"math/big"
 
 	v1 "syncChain/api/query/v1"
 	"syncChain/internal/service"
@@ -27,7 +29,6 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 	///
 	query := &mpcdao.QueryData{
 		ChainId: req.ChainId,
-		Kind:    req.Kind,
 		From: func() string {
 			if req.From == "" {
 				return ""
@@ -56,13 +57,72 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 		Page:     req.Page,
 		PageSize: req.PageSize,
 	}
-	result, err := service.DB().QueryTransfer(ctx, query)
+	/////
+	if req.Kind == "token" {
+		query.Kinds = []string{"erc20", "external"}
+	} else if req.Kind == "nft" {
+		query.Kinds = []string{"erc721", "erc1155"}
+	} else {
+		query.Kinds = []string{"external", "erc20", "erc721", "erc1155"}
+	}
+	////
+	results, err := service.DB().QueryTransfer(ctx, query)
 	if err != nil {
 		g.Log().Error(ctx, "Query err:", err)
 		return nil, mpccode.CodeInternalError(mpccode.TraceId(ctx))
 	}
-	//
+	/////
 	res = &v1.QueryRes{}
-	res.Result = result
+	for _, r := range results {
+
+		res.Result = append(res.Result, &v1.QueryResult{
+			ChainId:   r.ChainId,
+			BlockHash: r.BlockHash,
+			TxHash:    r.TxHash,
+			Ts:        r.Ts,
+			From:      r.From,
+			To:        r.To,
+			Contract:  r.Contract,
+			Kind:      r.Kind,
+			Status:    r.Status,
+			Symbol: func() string {
+				////
+				if r.Kind == "external" {
+					chain := c.chains[r.ChainId]
+					if chain != nil {
+						return chain.Coin
+					}
+				} else {
+					contract := c.contracts[r.Contract]
+					if contract != nil {
+						return contract.ContractName
+					}
+				}
+				return ""
+			}(),
+			Value: func() string {
+				if r.Kind == "external" {
+					fbalance := big.NewFloat(0)
+					fbalance.SetString(r.Value)
+					fval := fbalance.Quo(fbalance, big.NewFloat(math.Pow10(18)))
+					s := fval.Text('f', -1)
+					return s
+				} else if r.Kind == "erc20" {
+					contract := c.contracts[r.Contract]
+					if contract != nil {
+						fbalance := big.NewFloat(0)
+						fbalance.SetString(r.Value)
+						fval := fbalance.Quo(fbalance, big.NewFloat(math.Pow10(contract.Decimal)))
+						return fval.Text('f', -1)
+					} else {
+						return r.Value
+					}
+				}
+				return r.Value
+			}(),
+			TokenId: r.TokenId,
+		})
+
+	}
 	return res, nil
 }

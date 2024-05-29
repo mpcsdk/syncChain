@@ -46,7 +46,7 @@ func (s *EthModule) processBlock() {
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	s.logger.Debugf(s.ctx, "get header. height: %d, hash: %s", topHeight, header.Hash().String())
+	s.logger.Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
 
 	last := topHeight - 12
 	if last == s.lastBlockFromClient {
@@ -81,12 +81,25 @@ func (s *EthModule) processBlock() {
 
 		for index, tx := range block.Transactions() {
 			receipt := s.getReceipt(tx.Hash(), client)
+			////
 			if nil == receipt {
-				return
+				receipt = &types.Receipt{
+					Status: types.ReceiptStatusFailed,
+				}
+			} else {
+				if receipt.TxHash.Hex() != tx.Hash().Hex() {
+					receipt.Status = types.ReceiptStatusFailed
+				}
 			}
-			s.processTx(tx, txFroms, txHashes, index, int64(block.Time()), receipt)
+			////
+			s.processTx(block, tx, txFroms, txHashes, index, int64(receipt.Status))
+			s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , txHash:%s", s.chainId, tx.Hash())
 			if 0 != s.contracts.Len() {
-				s.processEvent(tx.Hash(), int64(block.Time()), receipt)
+				logs := s.getLogs(i, client)
+				if len(logs) > 0 {
+					s.logger.Debugf(s.ctx, "getLogs,chainId:%d , log:%d", s.chainId, len(logs))
+					s.processEvent(tx.Hash(), int64(block.Time()), logs, int64(receipt.Status))
+				}
 			}
 		}
 		/////event

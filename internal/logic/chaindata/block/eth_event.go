@@ -24,16 +24,16 @@ func isDuplicateKeyErr(err error) bool {
 	}
 	return false
 }
-func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Receipt) {
+func (s *EthModule) processEvent(txHash common.Hash, ts int64, logs []types.Log, status int64) {
 
-	for _, log := range receipt.Logs {
+	for _, log := range logs {
 		topic := log.Topics[0].String()
 		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
 
 		switch topic {
 		case transferTopic:
 			if len(log.Topics) == 3 {
-				err := event.Process20(s.ctx, s.chainId, ts, log, int64(receipt.Status))
+				err := event.Process20(s.ctx, s.chainId, ts, &log, status)
 				if err != nil {
 					if isDuplicateKeyErr(err) {
 						s.logger.Warning(s.ctx, "fail to Process20.  err:", err)
@@ -43,7 +43,7 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 					continue
 				}
 			} else if len(log.Topics) == 4 {
-				err := event.Process721(s.ctx, s.chainId, ts, log, int64(receipt.Status))
+				err := event.Process721(s.ctx, s.chainId, ts, &log, status)
 				if err != nil {
 					if isDuplicateKeyErr(err) {
 						s.logger.Warning(s.ctx, "fail to Process721.  err:", err)
@@ -56,7 +56,7 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 				s.logger.Notice(s.ctx, "unknown transfer topic: ", log)
 			}
 		case signalTopic:
-			err := event.Process1155Signal(s.ctx, s.chainId, ts, log, int64(receipt.Status))
+			err := event.Process1155Signal(s.ctx, s.chainId, ts, &log, status)
 			if err != nil {
 				if isDuplicateKeyErr(err) {
 					s.logger.Warning(s.ctx, "fail to Process1155Signal.  err:", err)
@@ -66,7 +66,7 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, receipt *types.Re
 				continue
 			}
 		case mulTopic:
-			err := event.Process1155Batch(s.ctx, s.chainId, ts, log, int64(receipt.Status))
+			err := event.Process1155Batch(s.ctx, s.chainId, ts, &log, status)
 			if err != nil {
 				if isDuplicateKeyErr(err) {
 					s.logger.Warning(s.ctx, "fail to Process1155Batch.  err:", err)

@@ -137,7 +137,6 @@ func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []str
 	// heightStr := common2.GlobalConf.GetString(chainsHeight, s.name, "0")
 
 	///
-	s.lastBlock = 74734134
 	s.loop()
 	//
 	return s
