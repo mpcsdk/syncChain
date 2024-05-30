@@ -66,34 +66,28 @@ func (s *EthModule) processBlock() {
 		return
 	}
 
-	s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks. from %d to %d", s.chainId, s.lastBlock, last)
 	for i := s.lastBlock + 1; i < last; i++ {
 		block, _, txFroms, txHashes := s.getBlock(i, client)
 		if nil == block {
+			s.logger.Error(s.ctx, "fail to get block:", s.chainId)
 			return
 		}
-		s.logger.Debugf(s.ctx, "getBlock,chainId:%d , block:%s,number:%d, txCount: %d", s.chainId, block.Hash().String(), i, len(block.Transactions()))
-
-		// blockhashString := block.Hash().String()
-		// if nil != blockhash {
-		// 	blockhashString = blockhash.String()
-		// }
-
+		s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks:%d:%d", s.chainId, i, block.NumberU64())
 		for index, tx := range block.Transactions() {
-			receipt := s.getReceipt(tx.Hash(), client)
+			receipt := s.getReceipt(txHashes[index], client)
 			////
 			if nil == receipt {
 				receipt = &types.Receipt{
 					Status: types.ReceiptStatusFailed,
 				}
 			} else {
-				if receipt.TxHash.Hex() != tx.Hash().Hex() {
+				if receipt.TxHash.Hex() != txHashes[index].Hex() {
 					receipt.Status = types.ReceiptStatusFailed
 				}
 			}
 			////
 			s.processTx(block, tx, txFroms, txHashes, index, int64(receipt.Status))
-			s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , txHash:%s", s.chainId, tx.Hash())
+			s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, txHash:%s", s.chainId, i, tx.Hash())
 			if 0 != s.contracts.Len() {
 				logs := s.getLogs(i, client)
 				if len(logs) > 0 {

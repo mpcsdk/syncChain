@@ -82,7 +82,7 @@ func (s *EthModule) processEvent(txHash common.Hash, ts int64, logs []types.Log,
 
 }
 
-func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.Receipt {
+func (s *EthModule) getReceipt(txHash *common.Hash, client *util.Client) *types.Receipt {
 	var (
 		err     error
 		receipt *types.Receipt
@@ -97,7 +97,7 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 		// query.FromBlock = big.NewInt(i)
 		// query.ToBlock = big.NewInt(i)
 		// query.Addresses = s.contracts.Addresses()
-		receipt, err = client.TransactionReceipt(ctx, txHash)
+		receipt, err = client.TransactionReceipt(ctx, *txHash)
 
 		ch <- 0
 	}()
