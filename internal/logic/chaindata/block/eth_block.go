@@ -73,7 +73,13 @@ func (s *EthModule) processBlock() {
 			return
 		}
 		s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks:%d:%d", s.chainId, i, block.NumberU64())
+		////
+		hashReceipt := map[string]*types.Receipt{}
 		for index, tx := range block.Transactions() {
+			value := tx.Value()
+			if tx == nil || tx.To() == nil || 0 == value.Sign() {
+				continue
+			}
 			receipt := s.getReceipt(txHashes[index], client)
 			////
 			if nil == receipt {
@@ -87,13 +93,14 @@ func (s *EthModule) processBlock() {
 			}
 			////
 			s.processTx(block, tx, txFroms, txHashes, index, int64(receipt.Status))
-			s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, txHash:%s", s.chainId, i, tx.Hash())
-			if 0 != s.contracts.Len() {
-				logs := s.getLogs(i, client)
-				if len(logs) > 0 {
-					s.logger.Debugf(s.ctx, "getLogs,chainId:%d , log:%d", s.chainId, len(logs))
-					s.processEvent(tx.Hash(), int64(block.Time()), logs, int64(receipt.Status))
-				}
+			hashReceipt[txHashes[index].Hex()] = receipt
+		}
+		s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, hashReceipt:%v", s.chainId, i, hashReceipt)
+		if 0 != s.contracts.Len() {
+			logs := s.getLogs(i, client)
+			if len(logs) > 0 {
+				s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
+				s.processEvent(hashReceipt, int64(block.Time()), logs)
 			}
 		}
 		/////event

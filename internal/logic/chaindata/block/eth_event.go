@@ -24,12 +24,15 @@ func isDuplicateKeyErr(err error) bool {
 	}
 	return false
 }
-func (s *EthModule) processEvent(txHash common.Hash, ts int64, logs []types.Log, status int64) {
+func (s *EthModule) processEvent(hashReceipt map[string]*types.Receipt, ts int64, logs []types.Log) {
 
 	for _, log := range logs {
 		topic := log.Topics[0].String()
 		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
-
+		status := int64(types.ReceiptStatusFailed)
+		if r, ok := hashReceipt[log.TxHash.String()]; ok {
+			status = int64(r.Status)
+		}
 		switch topic {
 		case transferTopic:
 			if len(log.Topics) == 3 {
