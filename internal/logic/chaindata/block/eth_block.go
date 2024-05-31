@@ -99,9 +99,23 @@ func (s *EthModule) processBlock() {
 		if 0 != s.contracts.Len() {
 			logs := s.getLogs(i, client)
 			if len(logs) > 0 {
-				s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
+				for _, l := range logs {
+					receipt := s.getReceipt(&l.TxHash, client)
+					////
+					if nil == receipt {
+						receipt = &types.Receipt{
+							Status: types.ReceiptStatusFailed,
+						}
+					} else {
+						if receipt.TxHash.Hex() != l.TxHash.Hex() {
+							receipt.Status = types.ReceiptStatusFailed
+						}
+					}
+					hashReceipt[receipt.TxHash.Hex()] = receipt
+				}
 				s.processEvent(hashReceipt, int64(block.Time()), logs)
 			}
+			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
 		}
 		/////event
 		// for _, tx := range block.Transactions() {
