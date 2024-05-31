@@ -5,20 +5,15 @@ import (
 	"strconv"
 	common2 "syncChain/internal/logic/chaindata/common"
 	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gctx"
-	"github.com/lib/pq"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int, status int64) {
+func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.ChainTransfer {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
-		return
+		return nil
 	}
 	toAddr := tx.To().String()
 	gas := strconv.FormatUint(tx.Gas(), 10)
@@ -42,23 +37,10 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 			LogIdx:    -1,
 			Nonce:     int64(tx.Nonce()),
 			Kind:      "external",
-			Status:    status,
+			Status:    0,
 			Removed:   false,
 		}
-		err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
-		if err != nil {
-			switch v := gerror.Cause(err).(type) {
-			case *pq.Error:
-				if v.Code == "23505" { // unique_violation
-					g.Log().Warning(s.ctx, "duplicate tx, txhash: ", data)
-				} else {
-					g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-				}
-			default:
-				g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-			}
-		}
-		return
+		return data
 	}
 
 	var hash common.Hash
@@ -108,21 +90,38 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 			LogIdx:    -1,
 			Nonce:     int64(tx.Nonce()),
 			Kind:      "external",
-			Status:    status,
+			Status:    0,
 			Removed:   false,
 		}
-		err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
-		if err != nil {
-			switch v := err.(type) {
-			case *pq.Error:
-				if v.Code == "23505" { // unique_violation
-					g.Log().Warning(s.ctx, "duplicate tx, txhash:", data)
-				} else {
-					g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-				}
-			default:
-				g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-			}
-		}
+		return data
 	}
+	return nil
 }
+
+// err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
+// if err != nil {
+// 	switch v := gerror.Cause(err).(type) {
+// 	case *pq.Error:
+// 		if v.Code == "23505" { // unique_violation
+// 			g.Log().Warning(s.ctx, "duplicate tx, txhash: ", data)
+// 		} else {
+// 			g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
+// 		}
+// 	default:
+// 		g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
+// 	}
+// }
+// return
+// err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
+// if err != nil {
+// 	switch v := err.(type) {
+// 	case *pq.Error:
+// 		if v.Code == "23505" { // unique_violation
+// 			g.Log().Warning(s.ctx, "duplicate tx, txhash:", data)
+// 		} else {
+// 			g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
+// 		}
+// 	default:
+// 		g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
+// 	}
+// }

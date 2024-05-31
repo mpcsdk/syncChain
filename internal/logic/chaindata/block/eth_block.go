@@ -6,11 +6,13 @@ import (
 	"sync"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
+	"syncChain/internal/service"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -73,56 +75,60 @@ func (s *EthModule) processBlock() {
 			return
 		}
 		s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks:%d:%d", s.chainId, i, block.NumberU64())
-		////
-		hashReceipt := map[string]*types.Receipt{}
+		////get  transfers
+		transfers := []*entity.ChainTransfer{}
+
+		///process external
 		for index, tx := range block.Transactions() {
 			value := tx.Value()
 			if tx == nil || tx.To() == nil || 0 == value.Sign() {
 				continue
 			}
-			receipt := s.getReceipt(txHashes[index], client)
-			////
+			tx := s.processTx(block, tx, txFroms, txHashes, index)
+			if tx != nil {
+				transfers = append(transfers, tx)
+			}
+		}
+		s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, tx:%v", s.chainId, i, len(transfers))
+		///internal
+		if s.contracts.Len() != 0 {
+			logs := s.getLogs(i, client)
+			if len(logs) > 0 {
+				txs := s.processEvent(int64(block.Time()), logs)
+				transfers = append(transfers, txs...)
+			}
+			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
+		}
+		///get receipt
+		for i, tx := range transfers {
+			receipt := s.getReceipt(common.HexToHash(tx.TxHash), client)
 			if nil == receipt {
 				receipt = &types.Receipt{
 					Status: types.ReceiptStatusFailed,
 				}
 			} else {
-				if receipt.TxHash.Hex() != txHashes[index].Hex() {
+				if receipt.TxHash.Hex() != tx.TxHash {
 					receipt.Status = types.ReceiptStatusFailed
 				}
 			}
-			////
-			s.processTx(block, tx, txFroms, txHashes, index, int64(receipt.Status))
-			hashReceipt[txHashes[index].Hex()] = receipt
+			transfers[i].Status = int64(receipt.Status)
 		}
-		s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, hashReceipt:%v", s.chainId, i, hashReceipt)
-		if 0 != s.contracts.Len() {
-			logs := s.getLogs(i, client)
-			if len(logs) > 0 {
-				for _, l := range logs {
-					receipt := s.getReceipt(&l.TxHash, client)
-					////
-					if nil == receipt {
-						receipt = &types.Receipt{
-							Status: types.ReceiptStatusFailed,
-						}
-					} else {
-						if receipt.TxHash.Hex() != l.TxHash.Hex() {
-							receipt.Status = types.ReceiptStatusFailed
-						}
-					}
-					hashReceipt[receipt.TxHash.Hex()] = receipt
+		///advApi
+		/////
+		///insert transfers
+		if len(transfers) != 0 {
+			err := service.DB().InsertTransferBatch(s.ctx, transfers)
+			if err != nil {
+				if isDuplicateKeyErr(err) {
+					s.logger.Warning(s.ctx, "fail to InsertTransferBatch.  err:", err)
+					return
 				}
-				s.processEvent(hashReceipt, int64(block.Time()), logs)
+				s.logger.Fatal(s.ctx, "fail to InsertTransferBatch.  err: ", err)
+				return
 			}
-			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
 		}
-		/////event
-		// for _, tx := range block.Transactions() {
-		// 	if 0 != s.contracts.Len() {
-		// 		s.processEvent(tx.Hash(), int64(block.Time()), client)
-		// 	}
-		// }
+		s.logger.Debugf(s.ctx, "InsertTransfer,chainId:%d , number:%d, log:%d", s.chainId, i, len(transfers))
+
 		////
 		s.lastBlock = i
 		s.updateHeight()

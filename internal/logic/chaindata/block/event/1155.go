@@ -5,13 +5,13 @@ import (
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.Log, status int64) error {
+func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.Log) []*entity.ChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
@@ -19,7 +19,8 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 
 	out, err := event1155mul.Inputs.Unpack(log.Data)
 	if err != nil {
-		return err
+		g.Log().Error(ctx, "Process1155Batch:", err)
+		return nil
 	}
 	contractAddr := log.Address.String()
 
@@ -48,20 +49,22 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 			Kind:      "erc1155",
 			TokenId:   t.String(),
 			Removed:   log.Removed,
-			Status:    status,
+			Status:    0,
 		})
 	}
-	return service.DB().InsertTransferBatch(ctx, datas)
+	return datas
+	// return service.DB().InsertTransferBatch(ctx, datas)
 }
 
-func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.Log, status int64) error {
+func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[3].Bytes())
 	//
 	out, err := event1155signal.Inputs.Unpack(log.Data)
 	if err != nil {
-		return err
+		g.Log().Error(ctx, "Process1155Signal:", err)
+		return nil
 	}
 	tokenId := out[0].(*big.Int)
 	value := out[1].(*big.Int)
@@ -92,7 +95,8 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 		Kind:      "erc1155",
 		TokenId:   tokenId.String(),
 		Removed:   log.Removed,
-		Status:    status,
+		Status:    0,
 	}
-	return service.DB().InsertTransfer(ctx, data)
+	return data
+	// return service.DB().InsertTransfer(ctx, data)
 }

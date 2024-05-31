@@ -5,9 +5,9 @@ import (
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
@@ -16,13 +16,14 @@ var (
 	rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
 )
 
-func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log, status int64) error {
+func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	//
 	out, err := event20Transfer.Inputs.Unpack(log.Data)
 	if err != nil {
-		return err
+		g.Log().Error(ctx, "unpack err", err)
+		return nil
 	}
 	value := out[0].(*big.Int)
 	// if nil == value || 0 == value.Sign() {
@@ -69,7 +70,8 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log, sta
 		Nonce:     0,
 		Kind:      "erc20",
 		Removed:   log.Removed,
-		Status:    status,
+		Status:    0,
 	}
-	return service.DB().InsertTransfer(ctx, data)
+	return data
+	// return service.DB().InsertTransfer(ctx, data)
 }

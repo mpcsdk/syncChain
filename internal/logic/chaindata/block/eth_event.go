@@ -11,7 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/lib/pq"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	// "github.com/lib/pq"
 )
 
@@ -24,68 +26,51 @@ func isDuplicateKeyErr(err error) bool {
 	}
 	return false
 }
-func (s *EthModule) processEvent(hashReceipt map[string]*types.Receipt, ts int64, logs []types.Log) {
+func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTransfer {
 
+	txs := []*entity.ChainTransfer{}
 	for _, log := range logs {
 		topic := log.Topics[0].String()
 		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
-		status := int64(types.ReceiptStatusFailed)
-		if r, ok := hashReceipt[log.TxHash.String()]; ok {
-			status = int64(r.Status)
-		}
+
 		switch topic {
 		case transferTopic:
 			if len(log.Topics) == 3 {
-				err := event.Process20(s.ctx, s.chainId, ts, &log, status)
-				if err != nil {
-					if isDuplicateKeyErr(err) {
-						s.logger.Warning(s.ctx, "fail to Process20.  err:", err)
-						continue
-					}
-					s.logger.Fatal(s.ctx, "fail to Process20.  err:", err)
-					continue
+				tx := event.Process20(s.ctx, s.chainId, ts, &log)
+				if tx != nil {
+					g.Log().Error(s.ctx, "fail to Process20.  err:", log)
 				}
+				txs = append(txs, tx)
 			} else if len(log.Topics) == 4 {
-				err := event.Process721(s.ctx, s.chainId, ts, &log, status)
-				if err != nil {
-					if isDuplicateKeyErr(err) {
-						s.logger.Warning(s.ctx, "fail to Process721.  err:", err)
-						continue
-					}
-					s.logger.Fatal(s.ctx, "fail to Process721.  err:", err)
-					continue
+				tx := event.Process721(s.ctx, s.chainId, ts, &log)
+				if tx != nil {
+					g.Log().Error(s.ctx, "fail to Process721.  err:", log)
 				}
+				txs = append(txs, tx)
 			} else {
 				s.logger.Notice(s.ctx, "unknown transfer topic: ", log)
 			}
 		case signalTopic:
-			err := event.Process1155Signal(s.ctx, s.chainId, ts, &log, status)
-			if err != nil {
-				if isDuplicateKeyErr(err) {
-					s.logger.Warning(s.ctx, "fail to Process1155Signal.  err:", err)
-					continue
-				}
-				s.logger.Fatal(s.ctx, "fail to Process1155Signal.  err: ", err)
-				continue
+			tx := event.Process1155Signal(s.ctx, s.chainId, ts, &log)
+			if tx != nil {
+				g.Log().Error(s.ctx, "fail to Process1155Signal.  err:", log)
 			}
+			txs = append(txs, tx)
 		case mulTopic:
-			err := event.Process1155Batch(s.ctx, s.chainId, ts, &log, status)
-			if err != nil {
-				if isDuplicateKeyErr(err) {
-					s.logger.Warning(s.ctx, "fail to Process1155Batch.  err:", err)
-					continue
-				}
-				s.logger.Fatal(s.ctx, "fail to Process1155Batch.  err: ", err)
-				continue
+			tx := event.Process1155Batch(s.ctx, s.chainId, ts, &log)
+			if tx != nil {
+				g.Log().Error(s.ctx, "fail to Process1155Signal.  err:", log)
 			}
+			txs = append(txs, tx...)
 		default:
 			s.logger.Debug(s.ctx, "unknown event topic:", log)
 		}
 	}
+	return txs
 
 }
 
-func (s *EthModule) getReceipt(txHash *common.Hash, client *util.Client) *types.Receipt {
+func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.Receipt {
 	var (
 		err     error
 		receipt *types.Receipt
@@ -100,7 +85,7 @@ func (s *EthModule) getReceipt(txHash *common.Hash, client *util.Client) *types.
 		// query.FromBlock = big.NewInt(i)
 		// query.ToBlock = big.NewInt(i)
 		// query.Addresses = s.contracts.Addresses()
-		receipt, err = client.TransactionReceipt(ctx, *txHash)
+		receipt, err = client.TransactionReceipt(ctx, txHash)
 
 		ch <- 0
 	}()

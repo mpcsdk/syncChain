@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log, status int64) error {
+func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
 
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
@@ -50,7 +49,8 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log, st
 		Nonce:     0,
 		Kind:      "erc721",
 		Removed:   log.Removed,
-		Status:    status,
+		Status:    0,
 	}
-	return service.DB().InsertTransfer(ctx, data)
+	return data
+	// return service.DB().InsertTransfer(ctx, data)
 }
