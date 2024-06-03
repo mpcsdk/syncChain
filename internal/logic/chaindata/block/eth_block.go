@@ -100,22 +100,26 @@ func (s *EthModule) processBlock() {
 			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
 		}
 		///get receipt
-		for i, tx := range transfers {
-			receipt := s.getReceipt(common.HexToHash(tx.TxHash), client)
-			if nil == receipt {
-				receipt = &types.Receipt{
-					Status: types.ReceiptStatusFailed,
-				}
-			} else {
-				if receipt.TxHash.Hex() != tx.TxHash {
-					receipt.Status = types.ReceiptStatusFailed
-				}
-			}
-			transfers[i].Status = int64(receipt.Status)
-		}
+		// for i, tx := range transfers {
+		// 	receipt := s.getReceipt(common.HexToHash(tx.TxHash), client)
+		// 	if nil == receipt {
+		// 		receipt = &types.Receipt{
+		// 			Status: types.ReceiptStatusFailed,
+		// 		}
+		// 	} else {
+		// 		if receipt.TxHash.Hex() != tx.TxHash {
+		// 			receipt.Status = types.ReceiptStatusFailed
+		// 		}
+		// 	}
+		// 	transfers[i].Status = int64(receipt.Status)
+		// }
 		///advApi
-		/////
+		/////fake reciept
+		for _, t := range transfers {
+			t.Status = 1
+		}
 		///insert transfers
+		////
 		if len(transfers) != 0 {
 			err := service.DB().InsertTransferBatch(s.ctx, transfers)
 			if err != nil {
