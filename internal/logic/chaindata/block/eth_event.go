@@ -71,6 +71,7 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 }
 
 func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.Receipt {
+	g.Log().Debug(s.ctx, "eth_getReceipt:", s.chainId, txHash)
 	var (
 		err     error
 		receipt *types.Receipt
@@ -111,6 +112,7 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 }
 
 func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
+	g.Log().Debug(s.ctx, "eth_getLogs:", s.chainId, i)
 	var (
 		logs []types.Log
 		err  error

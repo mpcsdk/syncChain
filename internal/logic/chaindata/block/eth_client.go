@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/mpcsdk/mpcCommon/mpcdao"
 )
@@ -177,7 +178,7 @@ func (s *EthModule) loop() {
 }
 
 func (s *EthModule) getChainId() int64 {
-
+	g.Log().Debug(s.ctx, "eth_getChainId:", s.chainId)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -245,6 +246,7 @@ func (s *EthModule) closeClient() {
 }
 
 func (s *EthModule) getHeader(client *util.Client) *types.Header {
+	g.Log().Debug(s.ctx, "eth_Header:", s.chainId)
 	var (
 		header *types.Header
 		err    error

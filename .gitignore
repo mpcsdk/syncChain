@@ -20,3 +20,4 @@ bin
 *.log
 syncChain
 __debug*
+nohup.out

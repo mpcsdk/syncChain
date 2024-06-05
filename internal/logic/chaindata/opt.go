@@ -12,7 +12,7 @@ import (
 func (s *sChainData) addOpt(data *entity.Chaincfg) {
 	rpcs := strings.Split(data.Rpc, ",")
 	///
-	briefs, err := s.riskCtrlRule.GetContractAbiBriefs(s.ctx, 0, "")
+	briefs, err := s.riskCtrlRule.GetContractAbiBriefs(s.ctx, data.ChainId, "")
 	if err != nil {
 		g.Log().Error(s.ctx, "GetContractRuleBriefs:", err)
 	}
@@ -54,20 +54,19 @@ func (s *sChainData) deleteOpt(data *entity.Chaincfg) {
 // /
 func (s *sChainData) addOptContractRule(data *entity.Contractrule) {
 	for _, v := range s.clients {
-		// if v.ChainId() == data.ChainId {
-		// v.UpdateContract(common.HexToAddress(data.ContractAddress))
-		v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
-		// return
-		// }
+		if v.ChainId() == data.ChainId {
+			v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
+			return
+		}
 	}
 }
 
 func (s *sChainData) updateOptContractRule(data *entity.Contractrule) {
 	for _, v := range s.clients {
-		// if v.ChainId() == data.ChainId {
-		v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
-		// return
-		// }
+		if v.ChainId() == data.ChainId {
+			v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
+			return
+		}
 	}
 
 }

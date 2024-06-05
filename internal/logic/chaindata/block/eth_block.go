@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	"golang.org/x/crypto/sha3"
 )
@@ -140,6 +141,7 @@ func (s *EthModule) processBlock() {
 }
 
 func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {
+	g.Log().Debug(s.ctx, "eth_getBlock:", s.chainId, i)
 	var (
 		block    *types.Block
 		hash     *common.Hash
