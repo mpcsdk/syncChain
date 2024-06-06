@@ -138,7 +138,7 @@ func new() *sDB {
 		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
 		//mapmpcdao.NewChainTransfer(r, conf.Config.Cache.SessionDuration),
 		riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
-		chainCfg:     mpcdao.NewChainCfg(),
+		chainCfg:     mpcdao.NewChainCfg(r, conf.Config.Cache.SessionDuration),
 	}
 }
 func init() {

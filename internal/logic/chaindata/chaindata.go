@@ -85,7 +85,7 @@ func New() *sChainData {
 	}
 	///db
 	s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
-	s.chainCfg = mpcdao.NewChainCfg()
+	s.chainCfg = mpcdao.NewChainCfg(nil, 0)
 
 	//jet
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)

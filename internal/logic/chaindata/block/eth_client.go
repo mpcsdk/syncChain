@@ -104,7 +104,7 @@ func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []str
 			addresses: []common.Address{},
 			names:     map[string]string{},
 		},
-		chaincfgdb: mpcdao.NewChainCfg(),
+		chaincfgdb: mpcdao.NewChainCfg(nil, 0),
 	}
 	////
 	s.blockTimer = time.NewTimer(2 * time.Second)
