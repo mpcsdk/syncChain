@@ -18,22 +18,24 @@ import (
 type sChainData struct {
 	ctx          context.Context
 	cancle       context.CancelFunc
-	clients      map[int]*block.EthModule
+	chainclients map[int64]*block.EthModule
 	closed       bool
 	nats         *mq.NatsServer
+	/////
 	riskCtrlRule *mpcdao.RiskCtrlRule
 	chainCfg     *mpcdao.ChainCfg
+	////
 }
 
 func (s *sChainData) Close() {
 	s.closed = true
-	for _, module := range s.clients {
+	for _, module := range s.chainclients {
 		module.Close()
 	}
 }
 func (s *sChainData) ClientState() map[int64]int64 {
 	d := map[int64]int64{}
-	for _, v := range s.clients {
+	for _, v := range s.chainclients {
 		d[v.ChainId()] = v.LastBlock()
 	}
 	return d
@@ -42,7 +44,7 @@ func (s *sChainData) ClientState() map[int64]int64 {
 func (s *sChainData) logLoop() {
 
 	go func() {
-		for _, module := range s.clients {
+		for _, module := range s.chainclients {
 			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
 		}
 
@@ -51,7 +53,7 @@ func (s *sChainData) logLoop() {
 				return
 			}
 
-			for _, module := range s.clients {
+			for _, module := range s.chainclients {
 				g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
 			}
 		}
@@ -61,23 +63,38 @@ func (s *sChainData) logLoop() {
 ////
 
 // //
-func new() *sChainData {
+func New() *sChainData {
+	p, err := gcmd.Parse(g.MapStrBool{
+		"s,sync": false,
+	})
+	if err != nil {
+		panic(err)
+	}
+	//
+	if p.GetOpt("sync") == nil {
+		return &sChainData{}
+	}
+	////
+	////syncchain
 	ctx, cancle := context.WithCancel(gctx.GetInitCtx())
 	s := &sChainData{
-		ctx:     ctx,
-		cancle:  cancle,
-		clients: map[int]*block.EthModule{},
-		closed:  false,
+		ctx:          ctx,
+		cancle:       cancle,
+		chainclients: map[int64]*block.EthModule{},
+		closed:       false,
 	}
-	///
+	///db
 	s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
 	s.chainCfg = mpcdao.NewChainCfg()
 
-	//
+	//jet
+	nats := mq.New(conf.Config.Nrpc.NatsUrl)
+	_, err = nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
+	if err != nil {
+		panic(err)
+	}
 	//natsmq
-	natsmq := mq.New(conf.Config.Nrpc.NatsUrl)
-	//chaincfg
-	natsmq.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
+	nats.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
 		g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
 		switch data.Opt {
 		case mq.OptDelete:
@@ -90,7 +107,7 @@ func new() *sChainData {
 		return nil
 	})
 	///contractrule
-	natsmq.Sub_ContractRule(mq.Sub_ContractRule, func(data *mq.ContractRuleMsg) error {
+	nats.Sub_ContractRule(mq.Sub_ContractRule, func(data *mq.ContractRuleMsg) error {
 		g.Log().Notice(gctx.GetInitCtx(), "contractrule:", data)
 		switch data.Opt {
 		case mq.OptDelete:
@@ -103,36 +120,33 @@ func new() *sChainData {
 		return nil
 	})
 
-	p, err := gcmd.Parse(g.MapStrBool{
-		"s,sync": false,
+	//natsmq
+	nats.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
+		g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
+		return nil
 	})
+	///
+	g.Log().Notice(s.ctx, "Sycn mode")
+	///
+	allcfg, err := s.chainCfg.AllCfg(s.ctx)
 	if err != nil {
 		panic(err)
 	}
-	//
-	if p.GetOpt("sync") != nil {
-		//natsmq
-		natsmq.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
-			g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
-			return nil
-		})
-		///
-		g.Log().Notice(s.ctx, "Sycn mode")
-		///
-		allcfg, err := s.chainCfg.AllCfg(s.ctx)
+	for _, v := range allcfg {
+		///init db
+		err := service.DB().InitChainDB(s.ctx, v.ChainId)
 		if err != nil {
 			panic(err)
 		}
-		for _, v := range allcfg {
-			s.addOpt(v)
-		}
-		///
-
-		s.logLoop()
+		s.addOpt(v)
 	}
 	///
+	s.logLoop()
+	///
+
 	return s
 }
+
 func init() {
-	service.RegisterChainData(new())
+	// service.RegisterChainData(new())
 }

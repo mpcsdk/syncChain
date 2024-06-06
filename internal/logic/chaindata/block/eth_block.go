@@ -118,11 +118,14 @@ func (s *EthModule) processBlock() {
 		/////fake reciept
 		for _, t := range transfers {
 			t.Status = 1
+			if t.ChainId == 0 {
+				g.Log().Warning(s.ctx, t)
+			}
 		}
 		///insert transfers
 		////
 		if len(transfers) != 0 {
-			err := service.DB().InsertTransferBatch(s.ctx, transfers)
+			err := service.DB().InsertTransferBatch(s.ctx, s.chainId, transfers)
 			if err != nil {
 				if isDuplicateKeyErr(err) {
 					s.logger.Warning(s.ctx, "fail to InsertTransferBatch.  err:", err)

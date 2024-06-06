@@ -22,7 +22,7 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 		fromAddr := txFroms[index].String()
 		txhash := txHashes[index].String()
 		data := &entity.ChainTransfer{
-			ChainId:   tx.ChainId().Int64(),
+			ChainId:   s.chainId,
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().Hex(),
 			Ts:        int64(block.Time()),
@@ -97,31 +97,3 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 	}
 	return nil
 }
-
-// err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
-// if err != nil {
-// 	switch v := gerror.Cause(err).(type) {
-// 	case *pq.Error:
-// 		if v.Code == "23505" { // unique_violation
-// 			g.Log().Warning(s.ctx, "duplicate tx, txhash: ", data)
-// 		} else {
-// 			g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-// 		}
-// 	default:
-// 		g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-// 	}
-// }
-// return
-// err := service.DB().InsertTransfer(gctx.GetInitCtx(), data)
-// if err != nil {
-// 	switch v := err.(type) {
-// 	case *pq.Error:
-// 		if v.Code == "23505" { // unique_violation
-// 			g.Log().Warning(s.ctx, "duplicate tx, txhash:", data)
-// 		} else {
-// 			g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-// 		}
-// 	default:
-// 		g.Log().Fatal(s.ctx, "fail to insert tx, err: ", err)
-// 	}
-// }

@@ -21,7 +21,7 @@ func (s *sChainData) addOpt(data *entity.Chaincfg) {
 	for _, v := range briefs {
 		module.UpdateContract(common.HexToAddress(v.ContractAddress), v.ContractName)
 	}
-	s.clients[data.Id] = module
+	s.chainclients[data.ChainId] = module
 	///
 	if data.IsEnable == 1 {
 		module.Start()
@@ -30,7 +30,7 @@ func (s *sChainData) addOpt(data *entity.Chaincfg) {
 
 // /
 func (s *sChainData) updateOpt(data *entity.Chaincfg) {
-	if v, ok := s.clients[data.Id]; ok {
+	if v, ok := s.chainclients[data.ChainId]; ok {
 		///
 		if data.IsEnable == 0 {
 			v.Pause()
@@ -45,15 +45,15 @@ func (s *sChainData) updateOpt(data *entity.Chaincfg) {
 
 }
 func (s *sChainData) deleteOpt(data *entity.Chaincfg) {
-	if v, ok := s.clients[data.Id]; ok {
+	if v, ok := s.chainclients[data.ChainId]; ok {
 		v.Close()
-		delete(s.clients, data.Id)
+		delete(s.chainclients, data.ChainId)
 	}
 }
 
 // /
 func (s *sChainData) addOptContractRule(data *entity.Contractrule) {
-	for _, v := range s.clients {
+	for _, v := range s.chainclients {
 		if v.ChainId() == data.ChainId {
 			v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
 			return
@@ -62,7 +62,7 @@ func (s *sChainData) addOptContractRule(data *entity.Contractrule) {
 }
 
 func (s *sChainData) updateOptContractRule(data *entity.Contractrule) {
-	for _, v := range s.clients {
+	for _, v := range s.chainclients {
 		if v.ChainId() == data.ChainId {
 			v.UpdateContract(common.HexToAddress(data.ContractAddress), data.ContractName)
 			return
@@ -71,7 +71,7 @@ func (s *sChainData) updateOptContractRule(data *entity.Contractrule) {
 
 }
 func (s *sChainData) deleteOptContractRule(data *entity.Contractrule) {
-	for _, v := range s.clients {
+	for _, v := range s.chainclients {
 		if v.ChainId() == data.ChainId {
 			v.DelContract(common.HexToAddress(data.ContractAddress))
 			return

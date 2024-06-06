@@ -66,7 +66,7 @@ func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.Que
 		query.Kinds = []string{"external", "erc20", "erc721", "erc1155"}
 	}
 	////
-	results, err := service.DB().QueryTransfer(ctx, query)
+	results, err := service.DB().QueryTransfer(ctx, query.ChainId, query)
 	if err != nil {
 		g.Log().Error(ctx, "Query err:", err)
 		return nil, mpccode.CodeInternalError(mpccode.TraceId(ctx))

@@ -89,29 +89,6 @@ type EthModule struct {
 	chaincfgdb *mpcdao.ChainCfg
 }
 
-// s.exit = make(chan byte)
-// s.closed = false
-// s.lock = sync.Mutex{}
-// // s.logger = log.GetLoggerByIndex(log.EVENT, s.name)
-
-// // heightStr := common2.GlobalConf.GetString(chainsHeight, s.name, "0")
-// s.lastBlock = heigh
-
-// s.list = make([]common.Address, 0)
-// if s.name == "rpg" {
-// 	s.list = append(s.list, rpgAddr)
-// }
-
-// ///
-// s.list = addresses
-// //
-
-// s.blockTimer = time.NewTimer(2 * time.Second)
-// s.clientTimer = time.NewTimer(1 * time.Second)
-// s.clientTimer.Stop()
-
-// s.loop()
-
 func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
 	s := &EthModule{
 		ctx:       ctx,

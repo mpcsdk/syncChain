@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"syncChain/internal/conf"
+	"syncChain/internal/logic/chaindata"
 	"syncChain/internal/service"
 
 	"github.com/lib/pq"
@@ -11,6 +13,7 @@ import (
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 	"github.com/mpcsdk/mpcCommon/mq"
 
+	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
@@ -19,15 +22,45 @@ import (
 
 type sDB struct {
 	jet           jetstream.JetStream
-	chainTransfer *mpcdao.ChainTransfer
+	r             *gredis.Redis
+	dur           int
+	chainTransfer map[int64]*mpcdao.ChainTransfer
 	riskCtrlRule  *mpcdao.RiskCtrlRule
 	chainCfg      *mpcdao.ChainCfg
 	// s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
 }
 
-func (s *sDB) QueryTransfer(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error) {
-	return s.chainTransfer.Query(ctx, query)
+func isPgErr(err error, key string) bool {
+	gerr := err.(*gerror.Error)
+	if cerr, ok := gerr.Cause().(*pq.Error); ok {
+		if cerr.Code == pq.ErrorCode(key) {
+			return true
+		}
+	}
+	return false
 }
+func (s *sDB) InitChainDB(ctx context.Context, chainId int64) error {
+	err := mpcdao.CreateChainDB(ctx, chainId)
+	if err != nil {
+		if isPgErr(err, "42P04") {
+		} else {
+			return err
+		}
+	}
+	chaindb := mpcdao.NewChainTransfer(chainId, s.r, s.dur)
+	s.chainTransfer[chainId] = chaindb
+	return nil
+}
+func (s *sDB) QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error) {
+	// return s.chainTransfer.Query(ctx, query)
+	if chaindb, ok := s.chainTransfer[chainId]; ok {
+		return chaindb.Query(ctx, query)
+	} else {
+		return nil, errors.New("no chaindb")
+	}
+}
+
+// /
 func isDuplicateKeyErr(err error) bool {
 	gerr := err.(*gerror.Error)
 	if cerr, ok := gerr.Cause().(*pq.Error); ok {
@@ -37,8 +70,14 @@ func isDuplicateKeyErr(err error) bool {
 	}
 	return false
 }
-func (s *sDB) InsertTransfer(ctx context.Context, data *entity.ChainTransfer) error {
-	err := s.chainTransfer.Insert(ctx, data)
+func (s *sDB) InsertTransfer(ctx context.Context, chainId int64, data *entity.ChainTransfer) error {
+	// err := s.chainTransfer.Insert(ctx, data)
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+
+	err := chaindb.Insert(ctx, data)
 	if err != nil {
 		if !isDuplicateKeyErr(err) {
 			return err
@@ -53,8 +92,13 @@ func (s *sDB) InsertTransfer(ctx context.Context, data *entity.ChainTransfer) er
 	///
 	return nil
 }
-func (s *sDB) InsertTransferBatch(ctx context.Context, datas []*entity.ChainTransfer) error {
-	err := s.chainTransfer.InsertBatch(ctx, datas)
+func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error {
+	// err := s.chainTransfer.InsertBatch(ctx, datas)
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+	err := chaindb.InsertBatch(ctx, datas)
 	if err != nil {
 		return err
 	}
@@ -89,12 +133,15 @@ func new() *sDB {
 	///
 	return &sDB{
 		jet:           jet,
-		chainTransfer: mpcdao.NewChainTransfer(r, conf.Config.Cache.SessionDuration),
-		riskCtrlRule:  mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
-		chainCfg:      mpcdao.NewChainCfg(),
+		r:             r,
+		dur:           conf.Config.Cache.SessionDuration,
+		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
+		//mapmpcdao.NewChainTransfer(r, conf.Config.Cache.SessionDuration),
+		riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
+		chainCfg:     mpcdao.NewChainCfg(),
 	}
 }
 func init() {
-
 	service.RegisterDB(new())
+	service.RegisterChainData(chaindata.New())
 }

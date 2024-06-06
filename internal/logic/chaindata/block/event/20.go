@@ -35,24 +35,6 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		contractAddr = ""
 	}
 
-	// service.DB().ChainLogs().Insert(gctx.GetInitCtx(), &entity.ChainLogs{
-	// 	// ChainId:   chainId,
-	// 	// Height:    i,
-	// 	BlockHash: log.BlockHash.String(),
-	// 	Ts:        ts,
-	// 	TxHash:    log.TxHash.String(),
-	// 	TxIdx:     int(log.TxIndex),
-	// 	From:      fromAddr.String(),
-	// 	To:        toAddr.String(),
-	// 	Contract:  contractAddr,
-	// 	Value:     value.String(),
-	// 	Gas:       "0",
-	// 	GasPrice:  "0",
-	// 	LogIdx:    int(log.Index),
-	// 	Nonce:     0,
-	// 	Kind:      "erc20",
-
-	// })
 	data := &entity.ChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
@@ -73,5 +55,4 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		Status:    0,
 	}
 	return data
-	// return service.DB().InsertTransfer(ctx, data)
 }

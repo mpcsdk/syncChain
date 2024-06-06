@@ -52,5 +52,4 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *e
 		Status:    0,
 	}
 	return data
-	// return service.DB().InsertTransfer(ctx, data)
 }

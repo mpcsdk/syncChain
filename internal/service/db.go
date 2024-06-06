@@ -14,9 +14,10 @@ import (
 
 type (
 	IDB interface {
-		QueryTransfer(ctx context.Context, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error)
-		InsertTransfer(ctx context.Context, data *entity.ChainTransfer) error
-		InsertTransferBatch(ctx context.Context, datas []*entity.ChainTransfer) error
+		InitChainDB(ctx context.Context, chainId int64) error
+		QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error)
+		InsertTransfer(ctx context.Context, chainId int64, data *entity.ChainTransfer) error
+		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error
 		ContractAbi() *mpcdao.RiskCtrlRule
 		ChainCfg() *mpcdao.ChainCfg
 	}

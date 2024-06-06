@@ -53,7 +53,6 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 		})
 	}
 	return datas
-	// return service.DB().InsertTransferBatch(ctx, datas)
 }
 
 func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
@@ -98,5 +97,4 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 		Status:    0,
 	}
 	return data
-	// return service.DB().InsertTransfer(ctx, data)
 }
