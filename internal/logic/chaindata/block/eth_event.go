@@ -40,14 +40,16 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 				tx := event.Process20(s.ctx, s.chainId, ts, &log)
 				if tx == nil {
 					g.Log().Error(s.ctx, "fail to Process20.  err:", log)
+				} else {
+					txs = append(txs, tx)
 				}
-				txs = append(txs, tx)
 			} else if len(log.Topics) == 4 {
 				tx := event.Process721(s.ctx, s.chainId, ts, &log)
 				if tx == nil {
 					g.Log().Error(s.ctx, "fail to Process721.  err:", log)
+				} else {
+					txs = append(txs, tx)
 				}
-				txs = append(txs, tx)
 			} else {
 				s.logger.Notice(s.ctx, "unknown transfer topic: ", log)
 			}
@@ -55,8 +57,9 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 			tx := event.Process1155Signal(s.ctx, s.chainId, ts, &log)
 			if tx == nil {
 				g.Log().Error(s.ctx, "fail to Process1155Signal.  err:", log)
+			} else {
+				txs = append(txs, tx)
 			}
-			txs = append(txs, tx)
 		case mulTopic:
 			tx := event.Process1155Batch(s.ctx, s.chainId, ts, &log)
 			if tx == nil {
