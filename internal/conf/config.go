@@ -27,13 +27,19 @@ type Token2Native struct {
 	ChainId  int64  `json:"chainId"`
 	Contract string `json:"contract"`
 }
+type SkipToAddr struct {
+	ChainId   int64    `json:"chainId"`
+	Contracts []string `json:"contract"`
+}
 type Cfg struct {
-	Server            *Server          `json:"server" v:"required"`
-	Cache             *Cache           `json:"cache" v:"required"`
-	JaegerUrl         string           `json:"jaegerUrl" `
-	Nrpc              *Nrpcfg          `json:"nrpc" v:"required"`
-	Token2Native      []*Token2Native  `json:"token2Native" v:"required"`
-	Token2NativeChain map[int64]string `json:"token2NativeChain"`
+	Server            *Server                       `json:"server" v:"required"`
+	Cache             *Cache                        `json:"cache" v:"required"`
+	JaegerUrl         string                        `json:"jaegerUrl" `
+	Nrpc              *Nrpcfg                       `json:"nrpc" v:"required"`
+	Token2Native      []*Token2Native               `json:"token2Native" v:"required"`
+	Token2NativeChain map[int64]string              `json:"token2NativeChain"`
+	SkipToAddr        []*SkipToAddr                 `json:"skipToAddr"`
+	SkipToAddrChain   map[int64]map[string]struct{} `json:"skipToAddrChain"`
 }
 
 var Config = &Cfg{}
@@ -58,5 +64,15 @@ func init() {
 	Config.Token2NativeChain = make(map[int64]string)
 	for _, v := range Config.Token2Native {
 		Config.Token2NativeChain[v.ChainId] = v.Contract
+	}
+	Config.SkipToAddrChain = make(map[int64]map[string]struct{})
+	for _, v := range Config.SkipToAddr {
+
+		if _, ok := Config.SkipToAddrChain[v.ChainId]; !ok {
+			Config.SkipToAddrChain[v.ChainId] = make(map[string]struct{})
+		}
+		for _, vv := range v.Contracts {
+			Config.SkipToAddrChain[v.ChainId][vv] = struct{}{}
+		}
 	}
 }

@@ -26,10 +26,11 @@ func isDuplicateKeyErr(err error) bool {
 	}
 	return false
 }
-func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTransfer {
 
+func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTransfer {
 	txs := []*entity.ChainTransfer{}
 	for _, log := range logs {
+
 		topic := log.Topics[0].String()
 		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
 
