@@ -21,7 +21,7 @@ logger:
 
 database:
   sync_chain:
-  - link: "pgsql:postgres:123456@tcp(127.0.0.1:5432)/sync_chain"
+  - link: "pgsql:postgres:123456@tcp(localhost:5432)/sync_chain"
   riskcontrol:
     - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
 
@@ -31,7 +31,6 @@ cache:
 nrpc:
   natsUrl: "127.0.0.1:4222"
 
-chainini: "./chain.ini"
 
 # redis 
 redis:
@@ -42,3 +41,6 @@ redis:
     address:     127.0.0.1:10060
     db:          2
 
+token2Native:
+  - chainId: 9627
+    contract: "0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB"

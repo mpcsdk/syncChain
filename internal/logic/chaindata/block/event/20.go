@@ -1,7 +1,6 @@
 package event
 
 import (
-	"bytes"
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
@@ -13,8 +12,8 @@ import (
 )
 
 var (
-	rpgAddrByte = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB").Bytes()
-	rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
+// rpgAddrByte = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB").Bytes()
+// rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
 )
 
 func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
@@ -33,7 +32,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 	// }
 	contractAddr := log.Address.String()
 	kind := "erc20"
-	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
+	if token2Native(chainId, contractAddr) {
 		contractAddr = ""
 		kind = "external"
 	}

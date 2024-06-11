@@ -1,7 +1,6 @@
 package event
 
 import (
-	"bytes"
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
@@ -25,7 +24,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 	}
 	contractAddr := log.Address.String()
 	kind := "1155"
-	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
+	if token2Native(chainId, contractAddr) {
 		contractAddr = ""
 		kind = "external"
 	}
@@ -78,7 +77,7 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 	// }
 	contractAddr := log.Address.String()
 	kind := "erc1155"
-	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
+	if token2Native(chainId, contractAddr) {
 		contractAddr = ""
 		kind = "external"
 	}

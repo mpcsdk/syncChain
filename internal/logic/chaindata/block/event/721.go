@@ -1,7 +1,6 @@
 package event
 
 import (
-	"bytes"
 	"context"
 	"syncChain/internal/logic/chaindata/types"
 
@@ -28,7 +27,7 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *e
 
 	contractAddr := log.Address.String()
 	kind := "erc721"
-	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
+	if token2Native(chainId, contractAddr) {
 		contractAddr = ""
 		kind = "external"
 	}

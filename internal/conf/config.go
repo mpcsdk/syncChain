@@ -22,12 +22,18 @@ type Nrpcfg struct {
 }
 
 // //
+
+type Token2Native struct {
+	ChainId  int64  `json:"chainId"`
+	Contract string `json:"contract"`
+}
 type Cfg struct {
-	Server    *Server `json:"server" v:"required"`
-	Cache     *Cache  `json:"cache" v:"required"`
-	JaegerUrl string  `json:"jaegerUrl" `
-	Nrpc      *Nrpcfg `json:"nrpc" v:"required"`
-	Chainini  string  `json:"chainini" v:"required"`
+	Server            *Server          `json:"server" v:"required"`
+	Cache             *Cache           `json:"cache" v:"required"`
+	JaegerUrl         string           `json:"jaegerUrl" `
+	Nrpc              *Nrpcfg          `json:"nrpc" v:"required"`
+	Token2Native      []*Token2Native  `json:"token2Native" v:"required"`
+	Token2NativeChain map[int64]string `json:"token2NativeChain"`
 }
 
 var Config = &Cfg{}
@@ -46,5 +52,11 @@ func init() {
 	}
 	if err := g.Validator().Data(Config).Run(ctx); err != nil {
 		panic(err)
+	}
+	/////
+	//////
+	Config.Token2NativeChain = make(map[int64]string)
+	for _, v := range Config.Token2Native {
+		Config.Token2NativeChain[v.ChainId] = v.Contract
 	}
 }
