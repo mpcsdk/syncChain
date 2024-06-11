@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
@@ -20,7 +21,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	//
-	out, err := event20Transfer.Inputs.Unpack(log.Data)
+	out, err := util.Event20Transfer.Inputs.Unpack(log.Data)
 	if err != nil {
 		g.Log().Error(ctx, "unpack err", err)
 		return nil
@@ -31,8 +32,10 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 	// 	return
 	// }
 	contractAddr := log.Address.String()
+	kind := "erc20"
 	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
 		contractAddr = ""
+		kind = "external"
 	}
 
 	data := &entity.ChainTransfer{
@@ -50,7 +53,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "erc20",
+		Kind:      kind,
 		Removed:   log.Removed,
 		Status:    0,
 	}

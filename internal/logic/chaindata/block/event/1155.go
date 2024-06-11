@@ -5,6 +5,7 @@ import (
 	"context"
 	"math/big"
 	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
@@ -17,13 +18,17 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	//
 
-	out, err := event1155mul.Inputs.Unpack(log.Data)
+	out, err := util.Event1155mul.Inputs.Unpack(log.Data)
 	if err != nil {
 		g.Log().Error(ctx, "Process1155Batch:", err)
 		return nil
 	}
 	contractAddr := log.Address.String()
-
+	kind := "1155"
+	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
+		contractAddr = ""
+		kind = "external"
+	}
 	////
 	tokenIds := out[0].([]*big.Int)
 	vals := out[1].([]*big.Int)
@@ -46,7 +51,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 			GasPrice:  "0",
 			LogIdx:    int(log.Index),
 			Nonce:     0,
-			Kind:      "erc1155",
+			Kind:      kind,
 			TokenId:   t.String(),
 			Removed:   log.Removed,
 			Status:    0,
@@ -60,7 +65,7 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 	fromAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[3].Bytes())
 	//
-	out, err := event1155signal.Inputs.Unpack(log.Data)
+	out, err := util.Event1155signal.Inputs.Unpack(log.Data)
 	if err != nil {
 		g.Log().Error(ctx, "Process1155Signal:", err)
 		return nil
@@ -72,10 +77,11 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 	// 	// return
 	// }
 	contractAddr := log.Address.String()
+	kind := "erc1155"
 	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
 		contractAddr = ""
+		kind = "external"
 	}
-
 	data := &entity.ChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
@@ -91,7 +97,7 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "erc1155",
+		Kind:      kind,
 		TokenId:   tokenId.String(),
 		Removed:   log.Removed,
 		Status:    0,

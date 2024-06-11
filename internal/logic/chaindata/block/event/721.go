@@ -25,12 +25,13 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *e
 	// if nil == value || 0 == value.Sign() {
 	// 	s.logger.Info(s.ctx, "value is nil or zero")
 	// 	return
-	// }
+
 	contractAddr := log.Address.String()
+	kind := "erc721"
 	if 0 == bytes.Compare(rpgAddrByte, log.Address.Bytes()) {
 		contractAddr = ""
+		kind = "external"
 	}
-
 	data := &entity.ChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
@@ -47,7 +48,7 @@ func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *e
 		GasPrice:  "0",
 		LogIdx:    int(log.Index),
 		Nonce:     0,
-		Kind:      "erc721",
+		Kind:      kind,
 		Removed:   log.Removed,
 		Status:    0,
 	}
