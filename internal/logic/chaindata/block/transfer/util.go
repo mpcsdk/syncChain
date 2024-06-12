@@ -1,4 +1,4 @@
-package event
+package transfer
 
 import "syncChain/internal/conf"
 
@@ -10,6 +10,7 @@ func token2Native(chainId int64, contract string) bool {
 	}
 	return false
 }
+
 func skipToAddr(chainId int64, toaddr string) bool {
 	if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
 		if _, ok := addrs[toaddr]; ok {

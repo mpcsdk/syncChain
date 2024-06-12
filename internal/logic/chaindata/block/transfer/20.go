@@ -1,4 +1,4 @@
-package event
+package transfer
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		g.Log().Info(ctx, "process20 skipaddr:", chainId, toAddr.String, log.TxHash.String())
 		return nil
 	}
-	//
+
 	out, err := util.Event20Transfer.Inputs.Unpack(log.Data)
 	if err != nil {
 		g.Log().Error(ctx, "unpack err", err)

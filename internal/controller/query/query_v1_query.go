@@ -17,6 +17,9 @@ import (
 func (c *ControllerV1) Query(ctx context.Context, req *v1.QueryReq) (res *v1.QueryRes, err error) {
 	g.Log().Debug(ctx, "Query req:", req)
 	///
+	if req.ChainId == 0 {
+		return nil, mpccode.CodeParamInvalid("need specify chainId")
+	}
 	if req.From == "" && req.To == "" && req.Contract == "" {
 		return nil, mpccode.CodeParamInvalid("from, to, contract can't be all empty")
 	}

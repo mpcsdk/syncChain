@@ -1,28 +1,39 @@
-package block
+package transfer
 
 import (
+	"context"
 	"math/big"
 	"strconv"
+	"sync"
 	common2 "syncChain/internal/logic/chaindata/common"
 	"syncChain/internal/logic/chaindata/types"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
+	"golang.org/x/crypto/sha3"
 )
 
-func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.ChainTransfer {
+func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.ChainTransfer {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return nil
 	}
 	toAddr := tx.To().String()
+	if skipToAddr(chainId, toAddr) {
+		g.Log().Info(ctx, "process20 skipaddr:", chainId, toAddr, tx.Hash().String())
+		return nil
+	}
+
 	gas := strconv.FormatUint(tx.Gas(), 10)
 	gasPrice := tx.GasPrice().String()
 	if nil != txFroms[index] {
 		fromAddr := txFroms[index].String()
 		txhash := txHashes[index].String()
 		data := &entity.ChainTransfer{
-			ChainId:   s.chainId,
+			ChainId:   chainId,
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().Hex(),
 			Ts:        int64(block.Time()),
@@ -72,7 +83,7 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 	fromAddr, err := common2.RecoverPlain(hash, r, S, V)
 	txHash := tx.Hash().String()
 	if nil != err {
-		s.logger.Errorf(s.ctx, "fail to calc fromAddr, txhash: %s", txHash)
+		g.Log().Errorf(ctx, "fail to calc fromAddr, txhash: %s", txHash)
 	} else {
 		data := &entity.ChainTransfer{
 			ChainId:   tx.ChainId().Int64(),
@@ -96,4 +107,23 @@ func (s *EthModule) processTx(block *types.Block, tx *types.Transaction, txFroms
 		return data
 	}
 	return nil
+}
+
+var (
+	big8 = big.NewInt(8)
+
+	hasherPool = sync.Pool{
+		New: func() interface{} {
+			return sha3.NewLegacyKeccak256()
+		},
+	}
+)
+
+func rlpHash(x interface{}) (h common.Hash) {
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
+	return h
 }

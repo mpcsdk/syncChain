@@ -3,29 +3,25 @@ package block
 import (
 	"context"
 	"math/big"
-	"sync"
+	"syncChain/internal/logic/chaindata/block/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
-	"golang.org/x/crypto/sha3"
 )
 
-var (
-	big8 = big.NewInt(8)
-
-	hasherPool = sync.Pool{
-		New: func() interface{} {
-			return sha3.NewLegacyKeccak256()
-		},
-	}
-)
+// func skipToAddr(chainId int64, toaddr string) bool {
+// 	if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
+// 		if _, ok := addrs[toaddr]; ok {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func (s *EthModule) processBlock() {
 	s.lock.Lock()
@@ -85,7 +81,7 @@ func (s *EthModule) processBlock() {
 			if tx == nil || tx.To() == nil || 0 == value.Sign() {
 				continue
 			}
-			tx := s.processTx(block, tx, txFroms, txHashes, index)
+			tx := transfer.ProcessTx(s.ctx, s.chainId, block, tx, txFroms, txHashes, index)
 			if tx != nil {
 				transfers = append(transfers, tx)
 			}
@@ -114,7 +110,6 @@ func (s *EthModule) processBlock() {
 		// 	}
 		// 	transfers[i].Status = int64(receipt.Status)
 		// }
-		///advApi
 		/////fake reciept
 		for _, t := range transfers {
 			t.Status = 1
@@ -122,6 +117,7 @@ func (s *EthModule) processBlock() {
 				g.Log().Warning(s.ctx, t)
 			}
 		}
+
 		///insert transfers
 		////
 		if len(transfers) != 0 {
@@ -176,13 +172,4 @@ func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *commo
 		s.closeClient()
 		return nil, nil, nil, nil
 	}
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	sha := hasherPool.Get().(crypto.KeccakState)
-	defer hasherPool.Put(sha)
-	sha.Reset()
-	rlp.Encode(sha, x)
-	sha.Read(h[:])
-	return h
 }

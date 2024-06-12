@@ -3,7 +3,7 @@ package block
 import (
 	"context"
 	"math/big"
-	"syncChain/internal/logic/chaindata/block/event"
+	"syncChain/internal/logic/chaindata/block/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"time"
@@ -37,14 +37,14 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 		switch topic {
 		case transferTopic:
 			if len(log.Topics) == 3 {
-				tx := event.Process20(s.ctx, s.chainId, ts, &log)
+				tx := transfer.Process20(s.ctx, s.chainId, ts, &log)
 				if tx == nil {
 					g.Log().Error(s.ctx, "fail to Process20.  err:", log)
 				} else {
 					txs = append(txs, tx)
 				}
 			} else if len(log.Topics) == 4 {
-				tx := event.Process721(s.ctx, s.chainId, ts, &log)
+				tx := transfer.Process721(s.ctx, s.chainId, ts, &log)
 				if tx == nil {
 					g.Log().Error(s.ctx, "fail to Process721.  err:", log)
 				} else {
@@ -54,14 +54,14 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 				s.logger.Notice(s.ctx, "unknown transfer topic: ", log)
 			}
 		case signalTopic:
-			tx := event.Process1155Signal(s.ctx, s.chainId, ts, &log)
+			tx := transfer.Process1155Signal(s.ctx, s.chainId, ts, &log)
 			if tx == nil {
 				g.Log().Error(s.ctx, "fail to Process1155Signal.  err:", log)
 			} else {
 				txs = append(txs, tx)
 			}
 		case mulTopic:
-			tx := event.Process1155Batch(s.ctx, s.chainId, ts, &log)
+			tx := transfer.Process1155Batch(s.ctx, s.chainId, ts, &log)
 			if tx == nil {
 				g.Log().Error(s.ctx, "fail to Process1155Signal.  err:", log)
 			}

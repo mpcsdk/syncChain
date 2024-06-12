@@ -57,7 +57,7 @@ skipToAddr:
   - chainId: 2025
     contract: 
     - "0xF44681e9d749b21d9F020CCF255B6967706DBB3d"
-    - "0x9c1cbfe5328dfb1733d59a7652d0a49228c7e12c"
+    - "0x9c1CbFE5328DFB1733d59a7652D0A49228c7E12C"
   - chainId: 9527
     contract: 
     - "0xFc1a90688e5891CBA41864cF8A91abFAA82d5068"
