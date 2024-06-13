@@ -17,6 +17,7 @@ type (
 		InitChainDB(ctx context.Context, chainId int64) error
 		QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.QueryData) ([]*entity.ChainTransfer, error)
 		InsertTransfer(ctx context.Context, chainId int64, data *entity.ChainTransfer) error
+		DelChainBlock(ctx context.Context, chainId int64, block int64) error
 		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error
 		ContractAbi() *mpcdao.RiskCtrlRule
 		ChainCfg() *mpcdao.ChainCfg

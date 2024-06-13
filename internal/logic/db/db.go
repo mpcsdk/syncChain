@@ -92,6 +92,15 @@ func (s *sDB) InsertTransfer(ctx context.Context, chainId int64, data *entity.Ch
 	///
 	return nil
 }
+func (s *sDB) DelChainBlock(ctx context.Context, chainId int64, block int64) error {
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+	err := chaindb.DelChainBlockNumber(ctx, chainId, block)
+	return err
+
+}
 func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error {
 	// err := s.chainTransfer.InsertBatch(ctx, datas)
 	chaindb := s.chainTransfer[chainId]

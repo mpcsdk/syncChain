@@ -125,10 +125,13 @@ func (s *EthModule) processBlock() {
 			if err != nil {
 				if isDuplicateKeyErr(err) {
 					s.logger.Warning(s.ctx, "fail to InsertTransferBatch.  err:", err)
+					service.DB().DelChainBlock(s.ctx, s.chainId, i)
+					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, transfers)
+				}
+				if err != nil {
+					s.logger.Fatal(s.ctx, "fail to InsertTransferBatch.  err: ", err)
 					return
 				}
-				s.logger.Fatal(s.ctx, "fail to InsertTransferBatch.  err: ", err)
-				return
 			}
 		}
 		s.logger.Debugf(s.ctx, "InsertTransfer,chainId:%d , number:%d, log:%d", s.chainId, i, len(transfers))
