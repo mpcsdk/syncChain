@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"math/big"
+	"syncChain/internal/conf"
 	"syncChain/internal/logic/chaindata/block/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
@@ -14,14 +15,22 @@ import (
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-// func skipToAddr(chainId int64, toaddr string) bool {
-// 	if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
-// 		if _, ok := addrs[toaddr]; ok {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
+//	func skipToAddr(chainId int64, toaddr string) bool {
+//		if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
+//			if _, ok := addrs[toaddr]; ok {
+//				return true
+//			}
+//		}
+//		return false
+//	}
+func skipToAddr(chainId int64, toaddr string) bool {
+	if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
+		if _, ok := addrs[toaddr]; ok {
+			return true
+		}
+	}
+	return false
+}
 
 func (s *EthModule) processBlock() {
 	s.lock.Lock()
@@ -117,7 +126,17 @@ func (s *EthModule) processBlock() {
 				g.Log().Warning(s.ctx, t)
 			}
 		}
-
+		///filter transfer of to in toaddrlist
+		filtertransfer := []*entity.ChainTransfer{}
+		for _, tx := range transfers {
+			if tx.Kind == "erc20" || tx.Kind == "external" {
+				if skipToAddr(s.chainId, tx.To) {
+					continue
+				}
+			}
+			filtertransfer = append(filtertransfer, tx)
+		}
+		transfers = filtertransfer
 		///insert transfers
 		////
 		if len(transfers) != 0 {
@@ -125,11 +144,15 @@ func (s *EthModule) processBlock() {
 			if err != nil {
 				if isDuplicateKeyErr(err) {
 					s.logger.Warning(s.ctx, "fail to InsertTransferBatch.  err:", err)
-					service.DB().DelChainBlock(s.ctx, s.chainId, i)
+					err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
+					if err != nil {
+						s.logger.Fatal(s.ctx, "fail to DelChainBlock. err:", err, transfers)
+						return
+					}
 					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, transfers)
 				}
 				if err != nil {
-					s.logger.Fatal(s.ctx, "fail to InsertTransferBatch.  err: ", err)
+					s.logger.Fatal(s.ctx, "fail to InsertTransferBatch. err: ", err, transfers)
 					return
 				}
 			}
