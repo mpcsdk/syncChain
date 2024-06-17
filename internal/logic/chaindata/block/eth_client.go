@@ -10,11 +10,11 @@ import (
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/mpcsdk/mpcCommon/mpcdao"
+	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 const (
@@ -69,24 +69,28 @@ type EthModule struct {
 	client *util.Client
 
 	// last block from client
-	lastBlockFromClient int64
-	count               byte
+	count byte
 
 	// last block processed
-	lastBlock int64
+	lastBlock      int64
+	confirmedBlock int64
+	headerBlock    int64
 
 	blockTimer  *time.Timer
 	clientTimer *time.Timer
 
-	abi           abi.ABI
-	event         abi.Event
-	transferTopic string
+	// abi           abi.ABI
+	// event         abi.Event
+	// transferTopic string
 
 	lock sync.Mutex
 
 	//
 	logger     *glog.Logger
 	chaincfgdb *mpcdao.ChainCfg
+	////
+	transferCh     chan []*entity.ChainTransfer
+	blockTransfers map[int64][]*entity.ChainTransfer
 }
 
 func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
@@ -105,6 +109,9 @@ func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []str
 			names:     map[string]string{},
 		},
 		chaincfgdb: mpcdao.NewChainCfg(nil, 0),
+		////
+		transferCh:     make(chan []*entity.ChainTransfer, 100),
+		blockTransfers: map[int64][]*entity.ChainTransfer{},
 	}
 	////
 	s.blockTimer = time.NewTimer(2 * time.Second)
@@ -133,7 +140,6 @@ func (s *EthModule) loop() {
 					s.getClient()
 				}()
 				break
-
 			case <-s.blockTimer.C:
 				s.processBlock()
 				break
@@ -149,6 +155,17 @@ func (s *EthModule) loop() {
 			case <-s.exit:
 				s.logger.Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
 				return
+			}
+		}
+	}()
+	////
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case txs := <-s.transferCh:
+				s.persistenceTransfer(txs)
 			}
 		}
 	}()
@@ -254,10 +271,14 @@ func (s *EthModule) getHeader(client *util.Client) *types.Header {
 
 }
 
-func (s *EthModule) updateHeight() {
-	s.logger.Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.lastBlock)
+func (s *EthModule) updateHeight(number int64) {
+	if s.confirmedBlock >= number {
+		return
+	}
+	s.confirmedBlock = number
+	s.logger.Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.confirmedBlock)
 
-	err := s.chaincfgdb.UpdateHeigh(s.ctx, s.chainId, s.lastBlock)
+	err := s.chaincfgdb.UpdateHeigh(s.ctx, s.chainId, s.confirmedBlock)
 	if err != nil {
 		s.logger.Errorf(s.ctx, "fail to update height, err: %s", err)
 	}
@@ -266,7 +287,7 @@ func (s *EthModule) updateHeight() {
 // //
 // //
 func (s *EthModule) Info() string {
-	return fmt.Sprintf("%s|%d|%d,contracts:%d", s.name, s.chainId, s.lastBlock, s.contracts.Len())
+	return fmt.Sprintf("%s|%d|%d|%d,contracts:%d", s.name, s.chainId, s.confirmedBlock, s.lastBlock, s.contracts.Len())
 }
 func (s *EthModule) Close() {
 	if s.closed {

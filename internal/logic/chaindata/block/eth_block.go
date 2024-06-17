@@ -51,30 +51,20 @@ func (s *EthModule) processBlock() {
 	}
 
 	topHeight := header.Number.Int64()
+	s.headerBlock = topHeight
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
 	s.logger.Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
 
-	last := topHeight - 12
-	if last == s.lastBlockFromClient {
-		s.count++
-		if s.count == 6 {
-			s.logger.Warningf(s.ctx, "get max retry count, close client and reconnect")
-			s.closeClient()
-			return
-		}
-	} else {
-		s.count = 0
-		s.lastBlockFromClient = last
-	}
-
-	if last <= s.lastBlock {
-		s.logger.Infof(s.ctx, "no need to processBlock, remote: %d, local: %d", last, s.lastBlock)
+	if s.lastBlock >= s.headerBlock {
+		s.logger.Infof(s.ctx, "no need to processBlock, remote: %d, local: %d", topHeight, s.lastBlock)
 		return
 	}
-
-	for i := s.lastBlock + 1; i < last; i++ {
+	////
+	////
+	transfers := []*entity.ChainTransfer{}
+	for i := s.lastBlock + 1; i < topHeight; i++ {
 		block, _, txFroms, txHashes := s.getBlock(i, client)
 		if nil == block {
 			s.logger.Error(s.ctx, "fail to get block:", s.chainId)
@@ -82,8 +72,6 @@ func (s *EthModule) processBlock() {
 		}
 		s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks:%d:%d", s.chainId, i, block.NumberU64())
 		////get  transfers
-		transfers := []*entity.ChainTransfer{}
-
 		///process external
 		for index, tx := range block.Transactions() {
 			value := tx.Value()
@@ -105,20 +93,8 @@ func (s *EthModule) processBlock() {
 			}
 			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
 		}
-		///get receipt
-		// for i, tx := range transfers {
-		// 	receipt := s.getReceipt(common.HexToHash(tx.TxHash), client)
-		// 	if nil == receipt {
-		// 		receipt = &types.Receipt{
-		// 			Status: types.ReceiptStatusFailed,
-		// 		}
-		// 	} else {
-		// 		if receipt.TxHash.Hex() != tx.TxHash {
-		// 			receipt.Status = types.ReceiptStatusFailed
-		// 		}
-		// 	}
-		// 	transfers[i].Status = int64(receipt.Status)
-		// }
+		/////
+		////
 		/////fake reciept
 		for _, t := range transfers {
 			t.Status = 1
@@ -126,6 +102,7 @@ func (s *EthModule) processBlock() {
 				g.Log().Warning(s.ctx, t)
 			}
 		}
+
 		///filter transfer of to in toaddrlist
 		filtertransfer := []*entity.ChainTransfer{}
 		for _, tx := range transfers {
@@ -137,32 +114,49 @@ func (s *EthModule) processBlock() {
 			filtertransfer = append(filtertransfer, tx)
 		}
 		transfers = filtertransfer
-		///insert transfers
-		////
-		if len(transfers) != 0 {
-			err := service.DB().InsertTransferBatch(s.ctx, s.chainId, transfers)
+		if len(transfers) > 0 {
+			// send latestTx
+			service.EvnetSender().SendEvnetBatch_Latest(s.ctx, transfers)
+			////waiting for persistence
+			s.transferCh <- transfers
+		}
+		s.lastBlock = i
+	}
+}
+
+func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
+	/////
+	if len(txs) > 0 {
+		i := txs[0].Height
+		s.blockTransfers[i] = txs
+		s.logger.Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
+	}
+	for i, txs := range s.blockTransfers {
+		// /when last == topHeight - 12 insert into db
+		if i > s.lastBlock-12 {
+			err := service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
 			if err != nil {
 				if isDuplicateKeyErr(err) {
-					s.logger.Warning(s.ctx, "fail to InsertTransferBatch.  err:", err)
+					s.logger.Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
 					err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
 					if err != nil {
-						s.logger.Fatal(s.ctx, "fail to DelChainBlock. err:", err, transfers)
+						s.logger.Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
 						return
 					}
-					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, transfers)
+					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
 				}
 				if err != nil {
-					s.logger.Fatal(s.ctx, "fail to InsertTransferBatch. err: ", err, transfers)
+					s.logger.Fatal(s.ctx, "fail to persistenceTransfer. err: ", err, txs)
 					return
 				}
 			}
+			////send event
+			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
+			s.updateHeight(i)
+			delete(s.blockTransfers, i)
 		}
-		s.logger.Debugf(s.ctx, "InsertTransfer,chainId:%d , number:%d, log:%d", s.chainId, i, len(transfers))
-
-		////
-		s.lastBlock = i
-		s.updateHeight()
 	}
+
 }
 
 func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash) {

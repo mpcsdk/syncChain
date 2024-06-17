@@ -2,32 +2,25 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"syncChain/internal/conf"
-	"syncChain/internal/logic/chaindata"
-	"syncChain/internal/service"
 
 	"github.com/lib/pq"
 	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
-	"github.com/mpcsdk/mpcCommon/mq"
 
 	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 type sDB struct {
-	jet           jetstream.JetStream
 	r             *gredis.Redis
 	dur           int
 	chainTransfer map[int64]*mpcdao.ChainTransfer
 	riskCtrlRule  *mpcdao.RiskCtrlRule
 	chainCfg      *mpcdao.ChainCfg
-	// s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
 }
 
 func isPgErr(err error, key string) bool {
@@ -83,13 +76,7 @@ func (s *sDB) InsertTransfer(ctx context.Context, chainId int64, data *entity.Ch
 			return err
 		}
 	}
-	////sync tx to mq
-	d, _ := json.Marshal(data)
-	_, err = s.jet.PublishAsync(mq.JetSub_SyncChainTransfer, d)
-	if err != nil {
-		g.Log().Error(ctx, "InsertTransfer err:", err)
-	}
-	///
+
 	return nil
 }
 func (s *sDB) DelChainBlock(ctx context.Context, chainId int64, block int64) error {
@@ -111,11 +98,6 @@ func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*e
 	if err != nil {
 		return err
 	}
-	////sync tx to mq
-	for _, data := range datas {
-		d, _ := json.Marshal(data)
-		s.jet.PublishAsync(mq.JetSub_SyncChainTransfer, d)
-	}
 	///
 	return nil
 }
@@ -126,22 +108,16 @@ func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
 func (s *sDB) ChainCfg() *mpcdao.ChainCfg {
 	return s.chainCfg
 }
-func new() *sDB {
-	nats := mq.New(conf.Config.Nrpc.NatsUrl)
-	jet := nats.JetStream()
-	_, err := nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
-	if err != nil {
-		panic(err)
-	}
+func New() *sDB {
+
 	///
 	r := g.Redis()
-	_, err = r.Conn(gctx.GetInitCtx())
+	_, err := r.Conn(gctx.GetInitCtx())
 	if err != nil {
 		panic(err)
 	}
 	///
 	return &sDB{
-		jet:           jet,
 		r:             r,
 		dur:           conf.Config.Cache.SessionDuration,
 		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
@@ -151,6 +127,5 @@ func new() *sDB {
 	}
 }
 func init() {
-	service.RegisterDB(new())
-	service.RegisterChainData(chaindata.New())
+
 }
