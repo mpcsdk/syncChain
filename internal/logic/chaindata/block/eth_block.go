@@ -63,8 +63,8 @@ func (s *EthModule) processBlock() {
 	}
 	////
 	////
-	transfers := []*entity.ChainTransfer{}
 	for i := s.lastBlock + 1; i < topHeight; i++ {
+		transfers := []*entity.ChainTransfer{}
 		block, _, txFroms, txHashes := s.getBlock(i, client)
 		if nil == block {
 			s.logger.Error(s.ctx, "fail to get block:", s.chainId)
@@ -118,8 +118,8 @@ func (s *EthModule) processBlock() {
 			// send latestTx
 			service.EvnetSender().SendEvnetBatch_Latest(s.ctx, transfers)
 			////waiting for persistence
-			s.transferCh <- transfers
 		}
+		s.transferCh <- transfers
 		s.lastBlock = i
 	}
 }
