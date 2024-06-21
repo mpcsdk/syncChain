@@ -126,11 +126,16 @@ func (s *EthModule) processBlock() {
 
 func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	/////
+	if len(txs) == 0 && len(s.blockTransfers) == 0 {
+		s.updateHeight(s.lastBlock - 12)
+	}
 	if len(txs) > 0 {
 		i := txs[0].Height
 		s.blockTransfers[i] = txs
 		s.logger.Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
 	}
+	/////
+	////
 	for i, txs := range s.blockTransfers {
 		// /when last == topHeight - 12 insert into db
 		if i > s.lastBlock-12 {
