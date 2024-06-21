@@ -2,9 +2,11 @@ package block
 
 import (
 	"context"
+	"errors"
 	"math/big"
+	"sync"
 	"syncChain/internal/conf"
-	"syncChain/internal/logic/chaindata/block/transfer"
+	"syncChain/internal/logic/chaindata/sync/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
@@ -32,11 +34,9 @@ func skipToAddr(chainId int64, toaddr string) bool {
 	return false
 }
 
-func (s *EthModule) processBlock() {
-	s.lock.Lock()
+func (s *EthModule) syncBlock() {
 	defer func() {
 		s.blockTimer.Reset(blockWait)
-		s.lock.Unlock()
 	}()
 
 	client := s.getClient()
@@ -47,6 +47,7 @@ func (s *EthModule) processBlock() {
 
 	header := s.getHeader(client)
 	if nil == header {
+		g.Log().Error(s.ctx, "fail to get header")
 		return
 	}
 
@@ -58,75 +59,125 @@ func (s *EthModule) processBlock() {
 	s.logger.Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
 
 	if s.lastBlock >= s.headerBlock {
-		s.logger.Infof(s.ctx, "no need to processBlock, remote: %d, local: %d", topHeight, s.lastBlock)
+		s.logger.Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
 		return
 	}
 	////
 	////
-	for i := s.lastBlock + 1; i < topHeight; i++ {
-		transfers := []*entity.ChainTransfer{}
-		block, _, txFroms, txHashes := s.getBlock(i, client)
-		if nil == block {
-			s.logger.Error(s.ctx, "fail to get block:", s.chainId)
+	for {
+		if topHeight > s.lastBlock {
+			////batch proccess 10block
+			startNumber := s.lastBlock + 1
+			endNumber := s.lastBlock + 10
+			if endNumber > topHeight {
+				endNumber = topHeight
+			}
+			////
+			wg := sync.WaitGroup{}
+			lock := sync.Mutex{}
+			//////
+			txsmap := map[int64][]*entity.ChainTransfer{}
+			errmap := map[int64]error{}
+			///
+			g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d", s.chainId, startNumber, endNumber)
+			for i := startNumber; i <= endNumber; i++ {
+				wg.Add(1)
+				go func(blockNumber int64) {
+					defer wg.Done()
+					txs, err := s.processBlock(s.ctx, blockNumber, client)
+					if err != nil {
+						lock.Lock()
+						errmap[blockNumber] = err
+						lock.Unlock()
+					} else {
+						lock.Lock()
+						txsmap[blockNumber] = txs
+						lock.Unlock()
+					}
+				}(i)
+			}
+			wg.Wait()
+			//////
+			if len(errmap) > 0 {
+				return
+			}
+			////
+			for _, v := range txsmap {
+				s.transferCh <- v
+			}
+			s.lastBlock = endNumber
+		} else {
 			return
 		}
-		s.logger.Debugf(s.ctx, "chainId:%d , start getting blocks:%d:%d", s.chainId, i, block.NumberU64())
-		////get  transfers
-		///process external
-		for index, tx := range block.Transactions() {
-			value := tx.Value()
-			if tx == nil || tx.To() == nil || 0 == value.Sign() {
+	}
+
+}
+
+func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client *util.Client) ([]*entity.ChainTransfer, error) {
+	transfers := []*entity.ChainTransfer{}
+	block, _, txFroms, txHashes := s.getBlock(blockNumber, client)
+	if nil == block {
+		s.logger.Error(ctx, "fail to get block:", s.chainId, blockNumber)
+		return nil, errors.New("fail to get block")
+	}
+	s.logger.Debugf(ctx, "chainId:%d , start getting blocks:%d", s.chainId, blockNumber)
+	////get  transfers
+	///process external
+	for index, tx := range block.Transactions() {
+		value := tx.Value()
+		if tx == nil || tx.To() == nil || 0 == value.Sign() {
+			continue
+		}
+		tx := transfer.ProcessTx(ctx, s.chainId, block, tx, txFroms, txHashes, index)
+		if tx != nil {
+			transfers = append(transfers, tx)
+		}
+	}
+	s.logger.Debugf(ctx, "getTransaction,chainId:%d , number:%d, tx:%v", s.chainId, blockNumber, len(transfers))
+	///internal
+	if s.contracts.Len() != 0 {
+		logs, err := s.getLogs(blockNumber, client)
+		if err != nil {
+			return nil, err
+		}
+		if len(logs) > 0 {
+			txs := s.processEvent(int64(block.Time()), logs)
+			transfers = append(transfers, txs...)
+		}
+		s.logger.Debugf(ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, blockNumber, len(logs))
+	}
+	/////
+	////
+	/////fake reciept
+	for _, t := range transfers {
+		t.Status = 1
+		if t.ChainId == 0 {
+			g.Log().Warning(ctx, t)
+		}
+	}
+
+	///filter transfer of to in toaddrlist
+	filtertransfer := []*entity.ChainTransfer{}
+	for _, tx := range transfers {
+		if tx.Kind == "erc20" || tx.Kind == "external" {
+			if skipToAddr(s.chainId, tx.To) {
 				continue
 			}
-			tx := transfer.ProcessTx(s.ctx, s.chainId, block, tx, txFroms, txHashes, index)
-			if tx != nil {
-				transfers = append(transfers, tx)
-			}
 		}
-		s.logger.Debugf(s.ctx, "getTransaction,chainId:%d , number:%d, tx:%v", s.chainId, i, len(transfers))
-		///internal
-		if s.contracts.Len() != 0 {
-			logs := s.getLogs(i, client)
-			if len(logs) > 0 {
-				txs := s.processEvent(int64(block.Time()), logs)
-				transfers = append(transfers, txs...)
-			}
-			s.logger.Debugf(s.ctx, "getLogs,chainId:%d , number:%d, log:%d", s.chainId, i, len(logs))
-		}
-		/////
-		////
-		/////fake reciept
-		for _, t := range transfers {
-			t.Status = 1
-			if t.ChainId == 0 {
-				g.Log().Warning(s.ctx, t)
-			}
-		}
-
-		///filter transfer of to in toaddrlist
-		filtertransfer := []*entity.ChainTransfer{}
-		for _, tx := range transfers {
-			if tx.Kind == "erc20" || tx.Kind == "external" {
-				if skipToAddr(s.chainId, tx.To) {
-					continue
-				}
-			}
-			filtertransfer = append(filtertransfer, tx)
-		}
-		transfers = filtertransfer
-		if len(transfers) > 0 {
-			// send latestTx
-			service.EvnetSender().SendEvnetBatch_Latest(s.ctx, transfers)
-			////waiting for persistence
-		}
-		s.transferCh <- transfers
-		s.lastBlock = i
+		filtertransfer = append(filtertransfer, tx)
 	}
+	transfers = filtertransfer
+
+	return transfers, nil
 }
 
 func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	/////
+	g.Log().Debug(s.ctx, "persistenceTransfer:", s.chainId, s.lastBlock, txs)
 	if len(txs) > 0 {
+		// send latestTx
+		service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
+		////waiting for persistence
 		i := txs[0].Height
 		s.blockTransfers[i] = txs
 		s.logger.Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))

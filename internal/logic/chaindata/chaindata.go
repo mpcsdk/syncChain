@@ -2,7 +2,7 @@ package chaindata
 
 import (
 	"context"
-	"syncChain/internal/logic/chaindata/block"
+	block "syncChain/internal/logic/chaindata/sync"
 	"syncChain/internal/service"
 	"time"
 

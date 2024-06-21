@@ -2,8 +2,9 @@ package block
 
 import (
 	"context"
+	"errors"
 	"math/big"
-	"syncChain/internal/logic/chaindata/block/transfer"
+	"syncChain/internal/logic/chaindata/sync/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"time"
@@ -67,7 +68,7 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 			}
 			txs = append(txs, tx...)
 		default:
-			s.logger.Debug(s.ctx, "unknown event topic:", log)
+			s.logger.Warning(s.ctx, "unknown event topic:", s.chainId, log)
 		}
 	}
 	return txs
@@ -115,7 +116,7 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 	}
 }
 
-func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
+func (s *EthModule) getLogs(i int64, client *util.Client) ([]types.Log, error) {
 	g.Log().Debug(s.ctx, "eth_getLogs:", s.chainId, i)
 	var (
 		logs []types.Log
@@ -141,17 +142,17 @@ func (s *EthModule) getLogs(i int64, client *util.Client) []types.Log {
 		if err != nil {
 			s.logger.Error(s.ctx, "fail to get logs,chain:", s.chainId, "query:", query, "err:", err)
 			s.closeClient()
-			return nil
+			return nil, err
 		}
 
 		// success, but no result
 		if nil == logs {
 			logs = []types.Log{}
 		}
-		return logs
+		return logs, nil
 	case <-ctx.Done():
 		s.logger.Error(s.ctx, "fail to get logs, err: timeout, close client and reconnect:", s.chainId)
 		s.closeClient()
-		return nil
+		return nil, errors.New("timeout")
 	}
 }

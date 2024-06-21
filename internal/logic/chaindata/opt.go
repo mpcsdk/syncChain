@@ -2,7 +2,7 @@ package chaindata
 
 import (
 	"strings"
-	"syncChain/internal/logic/chaindata/block"
+	block "syncChain/internal/logic/chaindata/sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"

@@ -95,15 +95,16 @@ type EthModule struct {
 
 func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
 	s := &EthModule{
-		ctx:       ctx,
-		chainId:   chainid,
-		name:      name,
-		lastBlock: heigh,
-		rpcList:   rpcList,
-		logger:    logger,
-		exit:      make(chan bool),
-		pause:     make(chan bool),
-		closed:    false,
+		ctx:            ctx,
+		chainId:        chainid,
+		name:           name,
+		lastBlock:      heigh,
+		confirmedBlock: heigh,
+		rpcList:        rpcList,
+		logger:         logger,
+		exit:           make(chan bool),
+		pause:          make(chan bool),
+		closed:         false,
 		contracts: contracts{
 			addresses: []common.Address{},
 			names:     map[string]string{},
@@ -141,7 +142,7 @@ func (s *EthModule) loop() {
 				}()
 				break
 			case <-s.blockTimer.C:
-				s.processBlock()
+				s.syncBlock()
 				break
 			case p := <-s.pause:
 				if p {
