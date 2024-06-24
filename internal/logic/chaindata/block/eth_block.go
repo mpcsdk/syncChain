@@ -139,20 +139,26 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	for i, txs := range s.blockTransfers {
 		// /when last == topHeight - 12 insert into db
 		if i > s.lastBlock-12 {
-			err := service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
-			if err != nil {
-				if isDuplicateKeyErr(err) {
-					s.logger.Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
-					err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
-					if err != nil {
-						s.logger.Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
-						return
-					}
-					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
+			txslen := len(txs)
+			pos := 0
+			step := 100
+			for {
+				pos_end := pos + step
+				if pos_end > txslen {
+					pos_end = txslen
 				}
+				itx := txs[pos:pos_end]
+				err := service.DB().InsertTransferBatch(s.ctx, s.chainId, itx)
 				if err != nil {
-					s.logger.Fatal(s.ctx, "fail to persistenceTransfer. err: ", err, txs)
-					return
+					if isDuplicateKeyErr(err) {
+						s.logger.Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
+					} else {
+						s.logger.Fatal(s.ctx, "fail to persistenceTransfer. err: ", err, "chain:", s.chainId, "block:", i)
+					}
+				}
+				pos = pos_end
+				if pos >= txslen {
+					break
 				}
 			}
 			////send event
