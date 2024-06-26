@@ -6,15 +6,15 @@ server:
   swaggerPath: "/swagger"
   msgSize: 1000000
 
-jaegerUrl: "127.0.0.1:6831"
+chainStatFile: "./chain.ini"
 
 logger:
-  level : "all"
+  level : "info"
   stdout: true 
   rotateExpire: "1d"
   path: "./"
   logger1:
-    level : "all"
+    level : "info"
     stdout: true 
     rotateExpire: "1d"
     path: "./"

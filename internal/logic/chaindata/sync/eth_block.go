@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"slices"
 	"sync"
 	"syncChain/internal/conf"
 	"syncChain/internal/logic/chaindata/sync/transfer"
@@ -101,9 +102,15 @@ func (s *EthModule) syncBlock() {
 			if len(errmap) > 0 {
 				return
 			}
+			////sortmap
+			sortnuber := []int64{}
+			for i, _ := range txsmap {
+				sortnuber = append(sortnuber, i)
+			}
+			slices.Sort(sortnuber)
 			////
-			for _, v := range txsmap {
-				s.transferCh <- v
+			for _, v := range sortnuber {
+				s.transferCh <- txsmap[v]
 			}
 			s.lastBlock = endNumber
 		} else {
@@ -120,7 +127,6 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		s.logger.Error(ctx, "fail to get block:", s.chainId, blockNumber)
 		return nil, errors.New("fail to get block")
 	}
-	s.logger.Debugf(ctx, "chainId:%d , start getting blocks:%d", s.chainId, blockNumber)
 	////get  transfers
 	///process external
 	for index, tx := range block.Transactions() {

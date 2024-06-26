@@ -49,7 +49,8 @@ func (s *sDB) QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.Qu
 	if chaindb, ok := s.chainTransfer[chainId]; ok {
 		return chaindb.Query(ctx, query)
 	} else {
-		return nil, errors.New("no chaindb")
+		g.Log().Error(ctx, "QueryTransfer:", "chainId:", chainId, "query:", query)
+		return nil, nil
 	}
 }
 
