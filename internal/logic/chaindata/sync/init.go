@@ -1,4 +1,4 @@
-package block
+package syncBlock
 
 // var transferabi abi.ABI
 // var event20Transfer abi.Event

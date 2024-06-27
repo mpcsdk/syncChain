@@ -1,4 +1,4 @@
-package block
+package syncBlock
 
 import (
 	"context"
@@ -9,11 +9,10 @@ import (
 
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
+	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/glog"
-	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
@@ -64,13 +63,11 @@ type EthModule struct {
 	name    string
 	chainId int64
 
-	contracts contracts
-
-	client *util.Client
+	contracts   []common.Address
+	skipToAddrs map[string]struct{}
+	client      *util.Client
 
 	// last block from client
-	count byte
-
 	// last block processed
 	lastBlock      int64
 	confirmedBlock int64
@@ -86,42 +83,63 @@ type EthModule struct {
 	lock sync.Mutex
 
 	//
-	logger     *glog.Logger
-	chaincfgdb *mpcdao.ChainCfg
+	// logger     *glog.Logger
+	// chaincfgdb *mpcdao.ChainCfg
 	////
 	transferCh     chan []*entity.ChainTransfer
 	blockTransfers map[int64][]*entity.ChainTransfer
+	///
+	rpgtracecli *util.Client
 }
 
-func NewEthModule(ctx context.Context, chainid int64, name string, rpcList []string, heigh int64, logger *glog.Logger) *EthModule {
+var rpgtraceurl = "http://127.0.0.1:8080"
+var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
+
+func NewEthModule(ctx context.Context, name string, chainId int64, height int64, rpcList []string, contracts []common.Address, skipToAddrs []common.Address) *EthModule {
 	s := &EthModule{
 		ctx:            ctx,
-		chainId:        chainid,
 		name:           name,
-		lastBlock:      heigh,
-		confirmedBlock: heigh,
+		chainId:        chainId,
+		lastBlock:      height,
+		confirmedBlock: height,
 		rpcList:        rpcList,
-		logger:         logger,
 		exit:           make(chan bool),
 		pause:          make(chan bool),
 		closed:         false,
-		contracts: contracts{
-			addresses: []common.Address{},
-			names:     map[string]string{},
-		},
-		chaincfgdb: mpcdao.NewChainCfg(nil, 0),
+		contracts:      contracts,
+		skipToAddrs: func() map[string]struct{} {
+			addrs := map[string]struct{}{}
+			for _, addr := range skipToAddrs {
+				addrs[addr.String()] = struct{}{}
+			}
+			return addrs
+
+		}(),
+		// chaincfgdb:     mpcdao.NewChainCfg(nil, 0),
 		////
 		transferCh:     make(chan []*entity.ChainTransfer, 100),
 		blockTransfers: map[int64][]*entity.ChainTransfer{},
+	}
+	if chainId == 9527 {
+		///rpgtestnet
+		cli, err := util.DialContext(ctx, rpgtraceurl_testnet)
+		if err != nil {
+			panic(err)
+		}
+		s.rpgtracecli = cli
+	} else if chainId == 2025 {
+		////rpg
+		cli, err := util.DialContext(ctx, rpgtraceurl)
+		if err != nil {
+			panic(err)
+		}
+		s.rpgtracecli = cli
 	}
 	////
 	s.blockTimer = time.NewTimer(2 * time.Second)
 	s.clientTimer = time.NewTimer(1 * time.Second)
 	s.clientTimer.Stop()
 	s.blockTimer.Stop()
-	// s.logger = log.GetLoggerByIndex(log.EVENT, s.name)
-	// heightStr := common2.GlobalConf.GetString(chainsHeight, s.name, "0")
-
 	///
 	s.loop()
 	//
@@ -137,7 +155,7 @@ func (s *EthModule) loop() {
 					s.lock.Lock()
 					defer s.lock.Unlock()
 
-					s.logger.Warningf(s.ctx, "%s clientTimer getClient", s.name)
+					g.Log().Warningf(s.ctx, "%s clientTimer getClient", s.name)
 					s.getClient()
 				}()
 				break
@@ -146,15 +164,15 @@ func (s *EthModule) loop() {
 				break
 			case p := <-s.pause:
 				if p {
-					s.logger.Notice(s.ctx, "pause:", s.name)
+					g.Log().Notice(s.ctx, "pause:", s.name)
 					s.blockTimer.Stop()
 					s.clientTimer.Stop()
 				} else {
-					s.logger.Notice(s.ctx, "continue:", s.name)
+					g.Log().Notice(s.ctx, "continue:", s.name)
 					s.blockTimer.Reset(blockWait)
 				}
 			case <-s.exit:
-				s.logger.Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
+				g.Log().Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
 				return
 			}
 		}
@@ -172,31 +190,31 @@ func (s *EthModule) loop() {
 	}()
 }
 
-func (s *EthModule) getChainId() int64 {
-	g.Log().Debug(s.ctx, "eth_getChainId:", s.chainId)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+// func (s *EthModule) getChainId() int64 {
+// 	g.Log().Debug(s.ctx, "eth_getChainId:", s.chainId)
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
 
-	id, err := s.client.ChainID(ctx)
-	if err != nil {
-		s.logger.Errorf(s.ctx, "%s fail to get chainId, err: %s, close client and reconnect", s.name, err)
-		s.closeClient()
-		return 0
-	}
+// 	id, err := s.client.ChainID(ctx)
+// 	if err != nil {
+// 		g.Log().Errorf(s.ctx, "%s fail to get chainId, err: %s, close client and reconnect", s.name, err)
+// 		s.closeClient()
+// 		return 0
+// 	}
 
-	// success, but no result
-	if nil == id {
-		s.logger.Errorf(s.ctx, "%s fail to get chainId, no id, close client and reconnect", s.name)
-		s.closeClient()
-	}
+// 	// success, but no result
+// 	if nil == id {
+// 		g.Log().Errorf(s.ctx, "%s fail to get chainId, no id, close client and reconnect", s.name)
+// 		s.closeClient()
+// 	}
 
-	chainId := id.Int64()
-	s.logger.Warningf(s.ctx, "%s get chainId: %d", s.name, s.chainId)
-	if 0 == chainId {
-		s.logger.Errorf(s.ctx, "%s fail to get chainId, close client and reconnect", s.name)
-	}
-	return chainId
-}
+// 	chainId := id.Int64()
+// 	g.Log().Warningf(s.ctx, "%s get chainId: %d", s.name, s.chainId)
+// 	if 0 == chainId {
+// 		g.Log().Errorf(s.ctx, "%s fail to get chainId, close client and reconnect", s.name)
+// 	}
+// 	return chainId
+// }
 
 func (s *EthModule) getClient() *util.Client {
 	if s.client != nil {
@@ -207,11 +225,11 @@ func (s *EthModule) getClient() *util.Client {
 	client, err := util.Dial(url)
 
 	if err != nil {
-		s.logger.Errorf(s.ctx, "fail to dial: %s", url)
+		g.Log().Errorf(s.ctx, "fail to dial: %s", url)
 		s.clientTimer.Reset(clientWait)
 		return nil
 	} else {
-		s.logger.Infof(s.ctx, "dialed: %s", url)
+		g.Log().Infof(s.ctx, "dialed: %s", url)
 	}
 
 	s.client = client
@@ -229,7 +247,6 @@ func (s *EthModule) closeClient() {
 			s.clientTimer.Reset(clientWait)
 		}
 
-		s.count = 0
 	}()
 
 	if s.client == nil {
@@ -259,13 +276,13 @@ func (s *EthModule) getHeader(client *util.Client) *types.Header {
 	select {
 	case <-ch:
 		if err != nil {
-			s.logger.Error(s.ctx, "fail to get blockHeader:", s.chainId, "err:", err)
+			g.Log().Error(s.ctx, "fail to get blockHeader:", s.chainId, "err:", err)
 			s.closeClient()
 			return nil
 		}
 		return header
 	case <-ctx.Done():
-		s.logger.Error(s.ctx, "fail to get blockHeader:", s.chainId, " timeout")
+		g.Log().Error(s.ctx, "fail to get blockHeader:", s.chainId, " timeout")
 		s.closeClient()
 		return nil
 	}
@@ -277,18 +294,17 @@ func (s *EthModule) updateHeight(number int64) {
 		return
 	}
 	s.confirmedBlock = number
-	s.logger.Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.confirmedBlock)
-
-	err := s.chaincfgdb.UpdateHeigh(s.ctx, s.chainId, s.confirmedBlock)
+	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.confirmedBlock)
+	err := service.DB().ChainCfg().UpdateHeigh(s.ctx, s.chainId, s.confirmedBlock)
 	if err != nil {
-		s.logger.Errorf(s.ctx, "fail to update height, err: %s", err)
+		g.Log().Errorf(s.ctx, "fail to update height, err: %s", err)
 	}
 }
 
 // //
 // //
 func (s *EthModule) Info() string {
-	return fmt.Sprintf("%s|%d|%d|%d,contracts:%d", s.name, s.chainId, s.confirmedBlock, s.lastBlock, s.contracts.Len())
+	return fmt.Sprintf("%s|%d|%d|%d,contracts:%d", s.name, s.chainId, s.confirmedBlock, s.lastBlock, len(s.contracts))
 }
 func (s *EthModule) Close() {
 	if s.closed {
@@ -330,15 +346,15 @@ func (s *EthModule) UpdateRpc(rpcs string) {
 }
 
 // /
-func (s *EthModule) UpdateContract(addr common.Address, name string) {
-	s.contracts.Add(addr, name)
-}
-func (s *EthModule) DelContract(addr common.Address) {
-	s.contracts.Del(addr)
-	// for i, c := range s.contracts {
-	// 	if c.Address == contract.Address {
-	// 		s.contracts = append(s.contracts[:i], s.contracts[i+1:]...)
-	// 		break
-	// 	}
-	// }
-}
+// func (s *EthModule) UpdateContract(addr common.Address, name string) {
+// 	s.contracts.Add(addr, name)
+// }
+// func (s *EthModule) DelContract(addr common.Address) {
+// 	s.contracts.Del(addr)
+// 	// for i, c := range s.contracts {
+// 	// 	if c.Address == contract.Address {
+// 	// 		s.contracts = append(s.contracts[:i], s.contracts[i+1:]...)
+// 	// 		break
+// 	// 	}
+// 	// }
+// }

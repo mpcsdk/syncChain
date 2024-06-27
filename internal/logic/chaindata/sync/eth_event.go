@@ -1,8 +1,7 @@
-package block
+package syncBlock
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"syncChain/internal/logic/chaindata/sync/transfer"
 	"syncChain/internal/logic/chaindata/types"
@@ -33,7 +32,7 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 	for _, log := range logs {
 
 		topic := log.Topics[0].String()
-		s.logger.Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
+		g.Log().Debug(s.ctx, "processEvent chainId:", s.chainId, "block:", log.BlockNumber, "tx:", log.TxHash.String(), "topic:", topic)
 
 		switch topic {
 		case transferTopic:
@@ -52,7 +51,7 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 					txs = append(txs, tx)
 				}
 			} else {
-				s.logger.Notice(s.ctx, "unknown transfer topic: ", log)
+				g.Log().Notice(s.ctx, "unknown transfer topic: ", log)
 			}
 		case signalTopic:
 			tx := transfer.Process1155Signal(s.ctx, s.chainId, ts, &log)
@@ -68,7 +67,7 @@ func (s *EthModule) processEvent(ts int64, logs []types.Log) []*entity.ChainTran
 			}
 			txs = append(txs, tx...)
 		default:
-			s.logger.Warning(s.ctx, "unknown event topic:", s.chainId, log)
+			g.Log().Warning(s.ctx, "unknown event topic:", s.chainId, log)
 		}
 	}
 	return txs
@@ -104,13 +103,13 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 					Status: types.ReceiptStatusFailed,
 				}
 			}
-			s.logger.Error(s.ctx, "fail to TransactionReceipt:", txHash, "err:", err)
+			g.Log().Error(s.ctx, "fail to TransactionReceipt:", txHash, "err:", err)
 			s.closeClient()
 			return nil
 		}
 		return receipt
 	case <-ctx.Done():
-		s.logger.Errorf(s.ctx, "fail to get TransactionReceipt, err: timeout, close client and reconnect")
+		g.Log().Errorf(s.ctx, "fail to get TransactionReceipt, err: timeout, close client and reconnect")
 		s.closeClient()
 		return nil
 	}
@@ -118,41 +117,15 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 
 func (s *EthModule) getLogs(i int64, client *util.Client) ([]types.Log, error) {
 	g.Log().Debug(s.ctx, "eth_getLogs:", s.chainId, i)
-	var (
-		logs []types.Log
-		err  error
-	)
-	ch := make(chan byte, 1)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var query ethereum.FilterQuery
-	go func() {
-		query.FromBlock = big.NewInt(i)
-		query.ToBlock = big.NewInt(i)
-		query.Addresses = s.contracts.Addresses()
-		logs, err = client.FilterLogs(ctx, query)
 
-		ch <- 0
-	}()
-
-	select {
-	case <-ch:
-		if err != nil {
-			s.logger.Error(s.ctx, "fail to get logs,chain:", s.chainId, "query:", query, "err:", err)
-			s.closeClient()
-			return nil, err
-		}
-
-		// success, but no result
-		if nil == logs {
-			logs = []types.Log{}
-		}
-		return logs, nil
-	case <-ctx.Done():
-		s.logger.Error(s.ctx, "fail to get logs, err: timeout, close client and reconnect:", s.chainId)
-		s.closeClient()
-		return nil, errors.New("timeout")
-	}
+	query.FromBlock = big.NewInt(i)
+	query.ToBlock = big.NewInt(i)
+	query.Addresses = s.contracts
+	logs, err := client.FilterLogs(ctx, query)
+	return logs, err
 }

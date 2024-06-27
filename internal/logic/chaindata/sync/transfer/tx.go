@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"strconv"
 	"sync"
-	common2 "syncChain/internal/logic/chaindata/common"
 	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,6 +50,7 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 			Kind:      "external",
 			Status:    0,
 			Removed:   false,
+			TraceTag:  "",
 		}
 		return data
 	}
@@ -80,7 +81,7 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 			tx.Data(),
 		})
 	}
-	fromAddr, err := common2.RecoverPlain(hash, r, S, V)
+	fromAddr, err := util.RecoverPlain(hash, r, S, V)
 	txHash := tx.Hash().String()
 	if nil != err {
 		g.Log().Errorf(ctx, "fail to calc fromAddr, txhash: %s", txHash)

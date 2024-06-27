@@ -26,16 +26,9 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		return nil
 	}
 	value := out[0].(*big.Int)
-	// if nil == value || 0 == value.Sign() {
-	// 	s.logger.Info(s.ctx, "value is nil or zero")
-	// 	return
-	// }
+
 	contractAddr := log.Address.String()
 	kind := "erc20"
-	if token2Native(chainId, contractAddr) {
-		contractAddr = ""
-		kind = "external"
-	}
 
 	data := &entity.ChainTransfer{
 		ChainId:   chainId,
@@ -55,6 +48,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *en
 		Kind:      kind,
 		Removed:   log.Removed,
 		Status:    0,
+		TraceTag:  "",
 	}
 	return data
 }

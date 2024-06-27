@@ -1,8 +1,7 @@
-package block
+package syncBlock
 
 import (
 	"os"
-	"syncChain/internal/logic/chaindata/common"
 	"testing"
 	"time"
 )
@@ -11,8 +10,6 @@ func TestInit(t *testing.T) {
 	defer func() {
 		os.RemoveAll("logs")
 	}()
-
-	common.InitConf("chain.ini")
 
 	// Init()
 

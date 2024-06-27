@@ -2,151 +2,192 @@ package chaindata
 
 import (
 	"context"
+	"strings"
 	block "syncChain/internal/logic/chaindata/sync"
+	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
 	"time"
 
 	"syncChain/internal/conf"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gcfg"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
+	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mq"
 )
 
 type sChainData struct {
-	ctx          context.Context
-	cancle       context.CancelFunc
-	chainclients map[int64]*block.EthModule
-	closed       bool
-	nats         *mq.NatsServer
+	ctx         context.Context
+	cancle      context.CancelFunc
+	chainclient *block.EthModule
+	closed      bool
+	nats        *mq.NatsServer
 	/////
 	riskCtrlRule *mpcdao.RiskCtrlRule
-	chainCfg     *mpcdao.ChainCfg
+	// chainCfg     *mpcdao.ChainCfg
 	////
 }
 
 func (s *sChainData) Close() {
 	s.closed = true
-	for _, module := range s.chainclients {
-		module.Close()
-	}
+	s.chainclient.Close()
 }
-func (s *sChainData) ClientState() map[int64]int64 {
-	d := map[int64]int64{}
-	for _, v := range s.chainclients {
-		d[v.ChainId()] = v.LastBlock()
-	}
+func (s *sChainData) ClientState() map[string]interface{} {
+	d := map[string]interface{}{}
+	d["chainId"] = s.chainclient.ChainId()
+	d["latest"] = s.chainclient.LastBlock()
+	d["confirmed"] = s.chainclient.LastBlock()
+
 	return d
 }
 
 func (s *sChainData) logLoop() {
-
 	go func() {
-		for _, module := range s.chainclients {
-			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
-		}
+
+		g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", s.chainclient.Info())
 
 		for range time.Tick(time.Second * 10) {
 			if s.closed {
 				return
 			}
-
-			for _, module := range s.chainclients {
-				g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", module.Info())
-			}
+			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", s.chainclient.Info())
 		}
 	}()
 }
 
-////
+// //
+type SkipToAddr struct {
+	ChainId int64    `json:"chainId"`
+	Address []string `json:"contracts"`
+}
+type SyncCfg struct {
+	SkipToAddr []SkipToAddr `json:"skipToAddr`
+}
+
+func syncCfg(ctx context.Context, chainId int64) (*SyncCfg, error) {
+	////
+	cfg := gcfg.Instance(conf.Config.SyncCfgFile)
+	v, err := cfg.Data(ctx)
+	if err != nil {
+		return nil, err
+	}
+	val := gvar.New(v)
+	syncCfg := &SyncCfg{}
+	err = val.Structs(syncCfg)
+	if err != nil {
+		panic(err)
+	}
+	if err := g.Validator().Data(syncCfg).Run(ctx); err != nil {
+		return nil, err
+	}
+	////
+	return syncCfg, nil
+}
 
 // //
 func New() *sChainData {
+	///syncchain
+	ctx, cancle := context.WithCancel(gctx.GetInitCtx())
+
 	p, err := gcmd.Parse(g.MapStrBool{
-		"s,sync": false,
+		"s,sync": true,
 	})
 	if err != nil {
 		panic(err)
 	}
 	//
-	if p.GetOpt("sync") == nil {
-		return &sChainData{}
+	opts := p.GetOptAll()
+	syncChainId := opts["sync"]
+	////
+	///sycn chain
+	if syncChainId == "" {
+		panic("sync chaindata")
+	}
+	chainId := gconv.Int64(syncChainId)
+	if chainId == 0 {
+		panic("chainId")
+	}
+	////chaincfg from db
+	chainCfg, err := service.DB().ChainCfg().GetCfg(ctx, chainId)
+	if err != nil {
+		panic(err)
+	}
+	rpcs := strings.Split(chainCfg.Rpc, ",")
+	if len(rpcs) == 0 {
+		panic(chainCfg)
+	}
+	cli, err := util.Dial(rpcs[0])
+	if err != nil {
+		panic(err)
+	}
+	cliChainId, err := cli.ChainID(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	if cliChainId.Int64() != chainCfg.ChainId {
+		panic("clichanId!=cfgChainId:" + rpcs[0])
 	}
 	////
-	////syncchain
-	ctx, cancle := context.WithCancel(gctx.GetInitCtx())
+	///filter contracts
+	riskCtrlRule := mpcdao.NewRiskCtrlRule(nil, 0)
+	briefs, err := riskCtrlRule.GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
+	if err != nil {
+		panic(err)
+	}
+	contracts := []common.Address{}
+	for _, brief := range briefs {
+		contracts = append(contracts, common.HexToAddress(brief.ContractAddress))
+	}
+	// nats := mq.New(conf.Config.Nrpc.NatsUrl)
+	// _, err = nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	///init transfer db
+	err = service.DB().InitChainTransferDB(ctx, chainId)
+	if err != nil {
+		panic(err)
+	}
+	///sync cfg
+	syncBlockCfg, err := syncCfg(ctx, chainId)
+	if err != nil {
+		panic(err)
+	}
+	///
+	//////
 	s := &sChainData{
-		ctx:          ctx,
-		cancle:       cancle,
-		chainclients: map[int64]*block.EthModule{},
-		closed:       false,
+		ctx:         ctx,
+		cancle:      cancle,
+		chainclient: &block.EthModule{},
+		closed:      false,
+		//////
 	}
-	///db
-	s.riskCtrlRule = mpcdao.NewRiskCtrlRule(nil, 0)
-	s.chainCfg = mpcdao.NewChainCfg(nil, 0)
-
-	//jet
-	nats := mq.New(conf.Config.Nrpc.NatsUrl)
-	_, err = nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
-	if err != nil {
-		panic(err)
-	}
-	//natsmq
-	nats.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
-		g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
-		switch data.Opt {
-		case mq.OptDelete:
-			s.deleteOpt(data.Data)
-		case mq.OptUpdate:
-			s.updateOpt(data.Data)
-		case mq.OptAdd:
-			s.addOpt(data.Data)
+	////
+	skipToAddrs := []common.Address{}
+	for _, skiptoaddr := range syncBlockCfg.SkipToAddr {
+		if skiptoaddr.ChainId != chainId {
+			continue
 		}
-		return nil
-	})
-	///contractrule
-	nats.Sub_ContractRule(mq.Sub_ContractRule, func(data *mq.ContractRuleMsg) error {
-		g.Log().Notice(gctx.GetInitCtx(), "contractrule:", data)
-		switch data.Opt {
-		case mq.OptDelete:
-			s.deleteOptContractRule(data.Data)
-		case mq.OptUpdate:
-			s.updateOptContractRule(data.Data)
-		case mq.OptAdd:
-			s.addOptContractRule(data.Data)
+		for _, addr := range skiptoaddr.Address {
+			skipToAddrs = append(skipToAddrs, common.HexToAddress(addr))
 		}
-		return nil
-	})
-
-	//natsmq
-	nats.Sub_ChainCfg(mq.Sub_ChainCfg, func(data *mq.ChainCfgMsg) error {
-		g.Log().Notice(gctx.GetInitCtx(), "chaindata:", data)
-		return nil
-	})
-	///
-	g.Log().Notice(s.ctx, "Sycn mode")
-	///
-	allcfg, err := s.chainCfg.AllCfg(s.ctx)
-	if err != nil {
-		panic(err)
+		break
 	}
-	for _, v := range allcfg {
-		///init db
-		err := service.DB().InitChainDB(s.ctx, v.ChainId)
-		if err != nil {
-			panic(err)
-		}
-		s.addOpt(v)
-	}
-	///
+	module := block.NewEthModule(s.ctx,
+		chainCfg.Coin,
+		chainCfg.ChainId,
+		chainCfg.Heigh,
+		rpcs, contracts, skipToAddrs)
+	//////
+	module.Start()
+	////
+	s.chainclient = module
 	s.logLoop()
-	///
 
 	return s
-}
-
-func init() {
-	// service.RegisterChainData(new())
 }

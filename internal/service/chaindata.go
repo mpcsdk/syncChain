@@ -8,7 +8,7 @@ package service
 type (
 	IChainData interface {
 		Close()
-		ClientState() map[int64]int64
+		ClientState() map[string]interface{}
 	}
 )
 

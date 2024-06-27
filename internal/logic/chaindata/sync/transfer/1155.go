@@ -24,10 +24,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 	}
 	contractAddr := log.Address.String()
 	kind := "1155"
-	if token2Native(chainId, contractAddr) {
-		contractAddr = ""
-		kind = "external"
-	}
+
 	////
 	tokenIds := out[0].([]*big.Int)
 	vals := out[1].([]*big.Int)
@@ -54,6 +51,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 			TokenId:   t.String(),
 			Removed:   log.Removed,
 			Status:    0,
+			TraceTag:  "",
 		})
 	}
 	return datas
@@ -72,15 +70,12 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 	tokenId := out[0].(*big.Int)
 	value := out[1].(*big.Int)
 	// if nil == value || 0 == value.Sign() {
-	// 	s.logger.Info(s.ctx, "value is nil or zero")
+	// 	g.Log().Info(s.ctx, "value is nil or zero")
 	// 	// return
 	// }
 	contractAddr := log.Address.String()
 	kind := "erc1155"
-	if token2Native(chainId, contractAddr) {
-		contractAddr = ""
-		kind = "external"
-	}
+
 	data := &entity.ChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
@@ -100,6 +95,7 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.
 		TokenId:   tokenId.String(),
 		Removed:   log.Removed,
 		Status:    0,
+		TraceTag:  "",
 	}
 	return data
 }
