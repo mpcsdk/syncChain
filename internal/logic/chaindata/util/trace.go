@@ -5,22 +5,23 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/text/gstr"
 )
 
 type TraceAction struct {
-	CallType      string `json:"callType"`
-	From          string `json:"from"`
-	To            string `json:"to"`
-	Gas           string `json:"gas"`
-	Input         string `json:"input"`
-	Init          string `json:"init"`
-	Author        string `json:"author"`
-	Value         string `json:"value"`
-	RewardType    string `json:"rewardType"`
-	Address       string `json:"address"`
-	RefundAddress string `json:"refundAddress"`
-	Balance       string `json:"balance"`
+	CallType      string         `json:"callType"`
+	From          common.Address `json:"from"`
+	To            common.Address `json:"to"`
+	Gas           string         `json:"gas"`
+	Input         string         `json:"input"`
+	Init          string         `json:"init"`
+	Author        string         `json:"author"`
+	Value         string         `json:"value"`
+	RewardType    string         `json:"rewardType"`
+	Address       string         `json:"address"`
+	RefundAddress string         `json:"refundAddress"`
+	Balance       string         `json:"balance"`
 }
 type TraceResult struct {
 	GasUsed string `json:"gasUsed"`
@@ -30,12 +31,12 @@ type TraceResult struct {
 }
 type Trace struct {
 	Action              TraceAction `json:"action"`
-	BlockHash           string      `json:"blockHash"`
+	BlockHash           common.Hash `json:"blockHash"`
 	BlockNumber         int64       `json:"blockNumber"`
 	Result              TraceResult `json:"result"`
 	Subtraces           int         `json:"subtraces"`
 	TraceAddress        []int       `json:"traceAddress"`
-	TransactionHash     string      `json:"transactionHash"`
+	TransactionHash     common.Hash `json:"transactionHash"`
 	TransactionPosition int         `json:"transactionPosition"`
 	Type                string      `json:"type"`
 	tag                 string
@@ -50,18 +51,18 @@ func (s *Trace) Tag() string {
 
 // //
 type TraceRpg struct {
-	BlockHeight  int64     `json:"blockHeight"`
-	BlockHash    string    `json:"blockHash"`
-	Depth        int       `json:"depth"`
-	GasLimit     string    `json:"gasLimit"`
-	ParentTxHash string    `json:"parentTxHash"`
-	TxIndex      int       `json:"txIndex"`
-	Source       string    `json:"source"`
-	Target       string    `json:"target"`
-	Time         time.Time `json:"time"`
-	Type         string    `json:"type"`
-	Value        string    `json:"value"`
-	TraceTag     string    `json:"traceTag"`
+	BlockHeight  int64          `json:"blockHeight"`
+	BlockHash    common.Hash    `json:"blockHash"`
+	Depth        int            `json:"depth"`
+	GasLimit     string         `json:"gasLimit"`
+	ParentTxHash common.Hash    `json:"parentTxHash"`
+	TxIndex      int            `json:"txIndex"`
+	Source       common.Address `json:"source"`
+	Target       common.Address `json:"target"`
+	Time         time.Time      `json:"time"`
+	Type         string         `json:"type"`
+	Value        string         `json:"value"`
+	TraceTag     string         `json:"traceTag"`
 }
 
 type RpgTraceResult struct {

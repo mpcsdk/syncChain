@@ -5,7 +5,6 @@ import (
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
@@ -25,7 +24,7 @@ func ProcessInTxnsRpg(ctx context.Context, chainId int64, block *types.Block, tr
 	//// fill transfer
 	transfers := []*entity.ChainTransfer{}
 	for _, trace := range filtertrace {
-		tx := block.Transaction(common.HexToHash(trace.ParentTxHash))
+		tx := block.Transaction(trace.ParentTxHash)
 		if tx == nil {
 			g.Log().Warning(ctx, "tx is nil")
 			continue
@@ -34,12 +33,12 @@ func ProcessInTxnsRpg(ctx context.Context, chainId int64, block *types.Block, tr
 		transfer := &entity.ChainTransfer{
 			ChainId:   chainId,
 			Height:    trace.BlockHeight,
-			BlockHash: trace.BlockHash,
+			BlockHash: trace.BlockHash.String(),
 			Ts:        int64(block.Time()),
-			TxHash:    trace.ParentTxHash,
+			TxHash:    trace.ParentTxHash.String(),
 			TxIdx:     trace.TxIndex,
-			From:      trace.Source,
-			To:        trace.Target,
+			From:      trace.Source.String(),
+			To:        trace.Target.String(),
 			Contract:  "",
 			Value:     trace.Value,
 			Gas:       trace.GasLimit,
@@ -72,7 +71,7 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 	//// fill transfer
 	transfers := []*entity.ChainTransfer{}
 	for _, trace := range filtertrace {
-		tx := block.Transaction(common.HexToHash(trace.TransactionHash))
+		tx := block.Transaction(trace.TransactionHash)
 		if tx == nil {
 			g.Log().Warning(ctx, "tx is nil")
 			continue
@@ -81,12 +80,12 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 		transfer := &entity.ChainTransfer{
 			ChainId:   chainId,
 			Height:    trace.BlockNumber,
-			BlockHash: trace.BlockHash,
+			BlockHash: trace.BlockHash.String(),
 			Ts:        int64(block.Time()),
-			TxHash:    trace.TransactionHash,
+			TxHash:    trace.TransactionHash.String(),
 			TxIdx:     trace.TransactionPosition,
-			From:      trace.Action.From,
-			To:        trace.Action.To,
+			From:      trace.Action.From.String(),
+			To:        trace.Action.To.String(),
 			Contract:  "",
 			Value:     trace.Action.Value,
 			Gas:       trace.Action.Gas,
