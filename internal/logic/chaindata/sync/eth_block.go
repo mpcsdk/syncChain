@@ -160,19 +160,27 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		if len(tracetxs) > 0 {
 			transfers = append(transfers, tracetxs...)
 		}
-	} else if s.chainId == 5000 || s.chainId == 5003 {
+	} else if s.chainId == 5003 {
+	} else if s.chainId == 5000 {
 		//todo: support mantle natvie
-
+		// traces, err := s.getDebug_TraceBlock(blockNumber, client)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// tracetxs := transfer.ProcessInTxns_mantle(ctx, s.chainId, block, traces)
+		// if tracetxs != nil {
+		// 	transfers = append(transfers, tracetxs...)
+		// }
 	} else {
 		///other chains
-		traces, err := s.getTraceBlock(blockNumber, client)
-		if err != nil {
-			return nil, err
-		}
-		tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
-		if tracetxs != nil {
-			transfers = append(transfers, tracetxs...)
-		}
+		// traces, err := s.getTraceBlock(blockNumber, client)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
+		// if tracetxs != nil {
+		// 	transfers = append(transfers, tracetxs...)
+		// }
 	}
 	///internal
 	if len(s.contracts) != 0 {
@@ -292,6 +300,18 @@ func (s *EthModule) getTraceBlock_rpg(i int64, client *util.Client) ([]*util.Tra
 	traces, err := client.TraceBlock_rpg(ctx, i)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintln("getTraceBlock_rpg:", i, err))
+	}
+	return traces, nil
+}
+func (s *EthModule) getDebug_TraceBlock(i int64, client *util.Client) ([]*util.DebugTraceResult, error) {
+	g.Log().Debug(s.ctx, "getDebug_TraceBlock:", s.chainId, i)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	//
+	traces, err := client.Debug_TraceBlock(ctx, big.NewInt(i))
+	if err != nil {
+		return nil, errors.New(fmt.Sprintln("getDebug_TraceBlock:", i, err))
 	}
 	return traces, nil
 }

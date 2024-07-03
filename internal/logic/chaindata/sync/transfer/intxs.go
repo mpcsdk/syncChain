@@ -64,7 +64,7 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 	filtertrace := []*util.Trace{}
 	for _, trace := range traces {
 		if trace.Action.CallType == "call" {
-			if trace.Action.Value.ToInt().Int64() != 0 {
+			if trace.Action.Value.String() != "0x0" {
 				filtertrace = append(filtertrace, trace)
 			}
 		}
@@ -91,6 +91,78 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 			Contract:  "",
 			Value:     trace.Action.Value.ToInt().String(),
 			Gas:       trace.Action.Gas,
+			GasPrice:  "0",
+			LogIdx:    -1,
+			Nonce:     int64(tx.Nonce()),
+			Kind:      "external",
+			Status:    0,
+			Removed:   false,
+			TraceTag:  trace.Tag(),
+		}
+		transfers = append(transfers, transfer)
+	}
+
+	return transfers
+}
+
+// /////
+func filteCalls(txIdx int, calls []*util.DebugTraceCalls) []*util.DebugTraceCalls {
+	filtecalls := []*util.DebugTraceCalls{}
+	for i, call := range calls {
+		if len(call.Calls) > 0 {
+			subfiltecalls := filteCalls(txIdx, call.Calls)
+			if len(subfiltecalls) > 0 {
+				for _, subcall := range subfiltecalls {
+					subcall.TraceAddress = append(subcall.TraceAddress, i)
+				}
+				filtecalls = append(filtecalls, subfiltecalls...)
+			}
+		} else {
+			if call.Type == "call" && call.Value.String() != "0x0" {
+				call.TxIdx = txIdx
+				call.TraceAddress = append(call.TraceAddress, i)
+				filtecalls = append(filtecalls, call)
+			}
+		}
+	}
+	return filtecalls
+}
+func filteCallTrace(traces []*util.DebugTraceResult) []*util.DebugTraceCalls {
+	filtetrace := []*util.DebugTraceCalls{}
+	for i, trace := range traces {
+		/////for subcall
+		calls := filteCalls(i, trace.Result.Calls)
+		///
+		filtetrace = append(filtetrace, calls...)
+	}
+	return filtetrace
+}
+func ProcessInTxns_mantle(ctx context.Context, chainId int64, block *types.Block, traces []*util.DebugTraceResult) []*entity.ChainTransfer {
+	////
+	filtertrace := filteCallTrace(traces)
+
+	//// fill transfer
+	transfers := []*entity.ChainTransfer{}
+	txs := block.Transactions()
+	for _, trace := range filtertrace {
+		tx := txs[trace.TxIdx]
+		if tx == nil {
+			g.Log().Fatal(ctx, "tx is nil:", "blockNumber:", block.Number())
+			continue
+		}
+		/////
+		transfer := &entity.ChainTransfer{
+			ChainId:   chainId,
+			Height:    block.Number().Int64(),
+			BlockHash: block.Hash().String(),
+			Ts:        int64(block.Time()),
+			TxHash:    tx.Hash().String(),
+			TxIdx:     trace.TxIdx,
+			From:      trace.From.String(),
+			To:        trace.To.String(),
+			Contract:  "",
+			Value:     trace.Value.ToInt().String(),
+			Gas:       trace.Gas,
 			GasPrice:  "0",
 			LogIdx:    -1,
 			Nonce:     int64(tx.Nonce()),

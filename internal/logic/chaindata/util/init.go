@@ -57,5 +57,5 @@ func init() {
 	Event1155mul = abi1155.Events[mulTransfer]
 	SignalTopic = hexutil.Encode(crypto.Keccak256([]byte(Event1155signal.Sig)))
 	MulTopic = hexutil.Encode(crypto.Keccak256([]byte(Event1155mul.Sig)))
-	//
+
 }

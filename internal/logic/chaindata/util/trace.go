@@ -7,9 +7,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/eth/tracers"
 	"github.com/gogf/gf/v2/text/gstr"
 )
 
+// //trace
 type TraceAction struct {
 	CallType      string         `json:"callType"`
 	From          common.Address `json:"from"`
@@ -50,7 +52,36 @@ func (s *Trace) Tag() string {
 	return s.tag
 }
 
-// //
+// //debug tracer
+type DebugTraceResult struct {
+	Result *DebugTraceCalls `json:"result"`
+}
+
+type DebugTraceCalls struct {
+	From    common.Address     `json:"from"`
+	Gas     string             `json:"gas"`
+	GasUsed string             `json:"gasUsed"`
+	To      common.Address     `json:"to"`
+	Input   string             `json:"input"`
+	Calls   []*DebugTraceCalls `json:"calls"`
+	Value   *hexutil.Big       `json:"value"`
+	Type    string             `json:"type"`
+	////
+	TxHash       common.Hash
+	TxIdx        int
+	TraceAddress []int
+	///
+	tag string
+}
+
+func (s *DebugTraceCalls) Tag() string {
+	if s.tag == "" {
+		s.tag = s.Type + "_" + gstr.JoinAny(s.TraceAddress, "_")
+	}
+	return s.tag
+}
+
+// //for ranger
 type TraceRpg struct {
 	BlockHeight  int64          `json:"blockHeight"`
 	BlockHash    common.Hash    `json:"blockHash"`
@@ -89,4 +120,20 @@ func (ec *Client) TraceBlock(ctx context.Context, number *big.Int) ([]*Trace, er
 		return nil, err
 	}
 	return head, err
+}
+
+var callTracer = "callTracer"
+
+func (ec *Client) Debug_TraceBlock(ctx context.Context, number *big.Int) ([]*DebugTraceResult, error) {
+	var data []*DebugTraceResult
+	err := ec.c.CallContext(ctx, &data, "debug_traceBlockByNumber", toBlockNumArg(number), &tracers.TraceConfig{
+		Tracer: &callTracer,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, nil
+	}
+	return data, err
 }
