@@ -6,6 +6,7 @@ import (
 	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
@@ -13,9 +14,10 @@ func ProcessInTxnsRpg(ctx context.Context, chainId int64, block *types.Block, tr
 
 	////
 	filtertrace := []*util.TraceRpg{}
-	for _, trace := range traces {
+	for i, trace := range traces {
 		if trace.Type == "call" {
 			if trace.Value != "0" {
+				trace.TraceTag = trace.TraceTag + "_" + gconv.String(i)
 				filtertrace = append(filtertrace, trace)
 			}
 		}
@@ -62,7 +64,7 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 	filtertrace := []*util.Trace{}
 	for _, trace := range traces {
 		if trace.Action.CallType == "call" {
-			if trace.Action.Value != "0x0" {
+			if trace.Action.Value.ToInt().Int64() != 0 {
 				filtertrace = append(filtertrace, trace)
 			}
 		}
@@ -87,7 +89,7 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 			From:      trace.Action.From.String(),
 			To:        trace.Action.To.String(),
 			Contract:  "",
-			Value:     trace.Action.Value,
+			Value:     trace.Action.Value.ToInt().String(),
 			Gas:       trace.Action.Gas,
 			GasPrice:  "0",
 			LogIdx:    -1,

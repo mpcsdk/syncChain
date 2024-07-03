@@ -297,7 +297,7 @@ func (s *EthModule) updateHeight(number int64) {
 	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.confirmedBlock)
 	err := service.DB().ChainCfg().UpdateHeigh(s.ctx, s.chainId, s.confirmedBlock)
 	if err != nil {
-		g.Log().Errorf(s.ctx, "fail to update height, err: %s", err)
+		g.Log().Fatalf(s.ctx, "fail to update height, err: %s", err)
 	}
 }
 

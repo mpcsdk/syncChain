@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/gogf/gf/v2/text/gstr"
 )
 
@@ -17,7 +18,7 @@ type TraceAction struct {
 	Input         string         `json:"input"`
 	Init          string         `json:"init"`
 	Author        string         `json:"author"`
-	Value         string         `json:"value"`
+	Value         *hexutil.Big   `json:"value"`
 	RewardType    string         `json:"rewardType"`
 	Address       string         `json:"address"`
 	RefundAddress string         `json:"refundAddress"`

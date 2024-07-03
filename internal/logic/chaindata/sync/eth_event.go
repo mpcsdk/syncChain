@@ -2,6 +2,8 @@ package syncBlock
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"math/big"
 	"syncChain/internal/logic/chaindata/sync/transfer"
 	"syncChain/internal/logic/chaindata/types"
@@ -127,5 +129,8 @@ func (s *EthModule) getLogs(i int64, client *util.Client) ([]types.Log, error) {
 	query.ToBlock = big.NewInt(i)
 	query.Addresses = s.contracts
 	logs, err := client.FilterLogs(ctx, query)
-	return logs, err
+	if err != nil {
+		return nil, errors.New(fmt.Sprintln("eth_getLogs:", i, err))
+	}
+	return logs, nil
 }

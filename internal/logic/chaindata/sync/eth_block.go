@@ -79,7 +79,6 @@ func (s *EthModule) syncBlock() {
 			txsmap := map[int64][]*entity.ChainTransfer{}
 			errmap := map[int64]error{}
 			///
-			g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d", s.chainId, startNumber, endNumber)
 			for i := startNumber; i <= endNumber; i++ {
 				wg.Add(1)
 				go func(blockNumber int64) {
@@ -111,9 +110,12 @@ func (s *EthModule) syncBlock() {
 			}
 			slices.Sort(sortnuber)
 			////
+			cnt := 0
 			for _, v := range sortnuber {
+				cnt = cnt + len(txsmap[v])
 				s.transferCh <- txsmap[v]
 			}
+			g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, cnt)
 			s.lastBlock = endNumber
 		} else {
 			return
@@ -158,6 +160,9 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		if len(tracetxs) > 0 {
 			transfers = append(transfers, tracetxs...)
 		}
+	} else if s.chainId == 5000 || s.chainId == 5003 {
+		//todo: support mantle natvie
+
 	} else {
 		///other chains
 		traces, err := s.getTraceBlock(blockNumber, client)
@@ -240,7 +245,7 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
 				}
 				if err != nil {
-					g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err, txs)
+					g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err)
 					return
 				}
 			}
@@ -261,14 +266,22 @@ func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *commo
 
 	block, hash, txFroms, txHashes, err := client.BlockByNumber(ctx, big.NewInt(i))
 
-	return block, hash, txFroms, txHashes, err
+	if err != nil {
+		return nil, nil, nil, nil, errors.New(fmt.Sprintln("eth_getBlock:", i, err))
+	}
+	return block, hash, txFroms, txHashes, nil
 }
 func (s *EthModule) getTraceBlock(i int64, client *util.Client) ([]*util.Trace, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	traces, err := client.TraceBlock(ctx, big.NewInt(i))
-	return traces, err
+	if err != nil {
+
+		return nil, errors.New(fmt.Sprintln("getTraceBlock:", i, err))
+
+	}
+	return traces, nil
 }
 func (s *EthModule) getTraceBlock_rpg(i int64, client *util.Client) ([]*util.TraceRpg, error) {
 	g.Log().Debug(s.ctx, "getTraceBlock_rpg:", s.chainId, i)
@@ -277,5 +290,8 @@ func (s *EthModule) getTraceBlock_rpg(i int64, client *util.Client) ([]*util.Tra
 	defer cancel()
 	//
 	traces, err := client.TraceBlock_rpg(ctx, i)
-	return traces, err
+	if err != nil {
+		return nil, errors.New(fmt.Sprintln("getTraceBlock_rpg:", i, err))
+	}
+	return traces, nil
 }

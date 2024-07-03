@@ -119,7 +119,7 @@ func New() *sDB {
 		panic(err)
 	}
 	///
-	return &sDB{
+	s := &sDB{
 		r:             r,
 		dur:           conf.Config.Cache.SessionDuration,
 		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
@@ -127,6 +127,7 @@ func New() *sDB {
 		riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
 		chainCfg:     mpcdao.NewChainCfg(r, conf.Config.Cache.SessionDuration),
 	}
+	return s
 }
 func init() {
 

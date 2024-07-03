@@ -1697,7 +1697,7 @@ func Test_trace(t *testing.T) {
 	}
 	for _, trace := range res {
 		if trace.Type == "call" {
-			if trace.Action.Value != "0x0" {
+			if trace.Action.Value.ToInt().Int64() != 0 {
 				j, _ := json.Marshal(trace)
 				fmt.Println(string(j))
 			}
