@@ -19,7 +19,7 @@ database:
   sync_chain:
     - link: "pgsql:postgres:123456@tcp(localhost:10100)/sync_chain"
   riskcontrol:
-    - link: "mysql:ssh:123456@tcp(localhost:3305)/riskcontrol"
+    - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
 
 cache:
   sessionDuration: 2000

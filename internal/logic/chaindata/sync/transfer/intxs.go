@@ -64,7 +64,7 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 	filtertrace := []*util.Trace{}
 	for _, trace := range traces {
 		if trace.Action.CallType == "call" {
-			if trace.Action.Value.String() != "0x0" {
+			if trace.Action.Value.String() != "0x0" && trace.Action.Input == "0x" && len(trace.TraceAddress) > 0 {
 				filtertrace = append(filtertrace, trace)
 			}
 		}

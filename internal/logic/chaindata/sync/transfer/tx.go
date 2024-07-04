@@ -21,6 +21,9 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return nil
 	}
+	if len(tx.Data()) > 0 {
+		return nil
+	}
 	toAddr := tx.To().String()
 	// if skipToAddr(chainId, toAddr) {
 	// 	g.Log().Info(ctx, "process20 skipaddr:", chainId, toAddr, tx.Hash().String())

@@ -173,14 +173,14 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		// }
 	} else {
 		///other chains
-		// traces, err := s.getTraceBlock(blockNumber, client)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
-		// if tracetxs != nil {
-		// 	transfers = append(transfers, tracetxs...)
-		// }
+		traces, err := s.getTraceBlock(blockNumber, client)
+		if err != nil {
+			return nil, err
+		}
+		tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
+		if tracetxs != nil {
+			transfers = append(transfers, tracetxs...)
+		}
 	}
 	///internal
 	if len(s.contracts) != 0 {
