@@ -1,23 +1,21 @@
 server:
   name: "sync_chain"
-  address:     ":8010"
+  address: ":8010"
   workId: 1
   openapiPath: "/api.json"
   swaggerPath: "/swagger"
   batchSyncTask: 1
   msgSize: 1000000
 
-
 logger:
-  level : "info"
-  stdout: true 
+  level: "info"
+  stdout: true
   rotateExpire: "1d"
   path: "./"
 
-
 database:
   sync_chain:
-    - link: "pgsql:postgres:123456@tcp(localhost:10100)/sync_chain"
+    - link: "pgsql:postgres:123456@tcp(localhost:5432)/sync_chain"
   riskcontrol:
     - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
 
@@ -26,14 +24,14 @@ cache:
 
 nrpc:
   natsUrl: "127.0.0.1:4222"
- 
-syncCfgFile : "./syncCfg.yaml"
 
-# redis 
+syncCfgFile: "./syncCfg.yaml"
+
+# redis
 redis:
   default:
     address: 127.0.0.1:10060
-    db:      1
+    db: 1
   cache:
-    address:     127.0.0.1:10060
-    db:          2
+    address: 127.0.0.1:10060
+    db: 2
