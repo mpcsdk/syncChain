@@ -78,8 +78,8 @@ func ProcessInTxns(ctx context.Context, chainId int64, block *types.Block, trace
 			g.Log().Warning(ctx, "tx is nil")
 			continue
 		}
-		///notice: drop intx if traceaddress > 50
-		if len(trace.Tag()) > 100 {
+		///notice: drop intx if traceaddress > 5555
+		if len(trace.TraceAddress) > 8 {
 			g.Log().Warning(ctx, "intx too long traceaddress:", trace)
 			continue
 		}

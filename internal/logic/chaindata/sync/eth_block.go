@@ -52,14 +52,17 @@ func (s *EthModule) syncBlock() {
 	}
 
 	topHeight := header.Number.Int64()
+	///
+	topHeight = topHeight - 6
+
 	s.headerBlock = topHeight
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	g.Log().Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
+	g.Log().Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Number.Int64(), header.Hash().String())
 
 	if s.lastBlock >= s.headerBlock {
-		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
+		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d, chainHeader:%d", topHeight, s.lastBlock, header.Number.Int64())
 		return
 	}
 	////
