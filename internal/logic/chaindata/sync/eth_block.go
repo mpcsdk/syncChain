@@ -52,17 +52,14 @@ func (s *EthModule) syncBlock() {
 	}
 
 	topHeight := header.Number.Int64()
-	///
-	topHeight = topHeight - 6
-
 	s.headerBlock = topHeight
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	g.Log().Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Number.Int64(), header.Hash().String())
+	g.Log().Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
 
 	if s.lastBlock >= s.headerBlock {
-		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d, chainHeader:%d", topHeight, s.lastBlock, header.Number.Int64())
+		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
 		return
 	}
 	////
@@ -244,21 +241,22 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	for i, txs := range s.blockTransfers {
 		// /when last == topHeight - 12 insert into db
 		if i > s.lastBlock-12 {
-			err := service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
+			err := service.DB().InsertTransfer_Transaction(s.ctx, s.chainId, txs)
 			if err != nil {
-				if isDuplicateKeyErr(err) {
-					g.Log().Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
-					err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
-					if err != nil {
-						g.Log().Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
-						return
-					}
-					err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
-				}
-				if err != nil {
-					g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err)
-					return
-				}
+				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
+				// if isDuplicateKeyErr(err) {
+				// 	g.Log().Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
+				// 	err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
+				// 	if err != nil {
+				// 		g.Log().Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
+				// 		return
+				// 	}
+				// 	err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
+				// }
+				// if err != nil {
+				// 	g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err)
+				// 	return
+				// }
 			}
 			////send event
 			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
