@@ -103,7 +103,19 @@ func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*e
 	///
 	return nil
 }
-
+func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error {
+	// err := s.chainTransfer.InsertBatch(ctx, datas)
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+	err := chaindb.Insert_Transaction(ctx, datas)
+	if err != nil {
+		return err
+	}
+	///
+	return nil
+}
 func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
 	return s.riskCtrlRule
 }
