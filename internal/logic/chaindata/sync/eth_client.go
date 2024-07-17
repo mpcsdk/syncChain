@@ -92,7 +92,7 @@ type EthModule struct {
 	rpgtracecli *util.Client
 }
 
-var rpgtraceurl = "http://127.0.0.1:8080"
+var rpgtraceurl = "https://mainnet.rangersprotocol.com/api"
 var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
 
 func NewEthModule(ctx context.Context, name string, chainId int64, height int64, rpcList []string, contracts []common.Address, skipToAddrs []common.Address) *EthModule {
