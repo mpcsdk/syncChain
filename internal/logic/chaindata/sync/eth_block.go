@@ -56,7 +56,7 @@ func (s *EthModule) syncBlock() {
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	g.Log().Debugf(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
+	g.Log().Infof(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
 
 	if s.lastBlock >= s.headerBlock {
 		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
