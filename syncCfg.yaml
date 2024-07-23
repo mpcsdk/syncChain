@@ -23,6 +23,14 @@ skipToAddr:
     contracts: 
     - "0x82Ba28492DbD4cAb4Fe662f4090722f61c453678"
     - "0xB82318f4cB5D04936A12e91148230064B19e03f8"
+  - chainId: 1
+    contracts:
+    - "0xD814b145AdC9261C7C05830385ecf2b6D70fDA48"
+    - "0xFe4d81A83deF8ba75E5B9670C562D124ceDb3e94"
+  - chainId: 11155111
+    contracts:
+    - "0x4518f3951BcCc42604C3D349ECdc85caF388e497"
+    - "0xe3e5df5D1Ea7E2A7e107e35098412Aa6016bF89c"
 
 # token2Native:
 #   - chainId: 9527
