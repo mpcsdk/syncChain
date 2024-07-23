@@ -123,7 +123,7 @@ func filteCalls(txIdx int, calls []*util.DebugTraceCalls) []*util.DebugTraceCall
 				filtecalls = append(filtecalls, subfiltecalls...)
 			}
 		} else {
-			if call.Type == "call" && call.Value.String() != "0x0" {
+			if call.Type == "CALL" && call.Value.String() != "0x0" {
 				call.TxIdx = txIdx
 				call.TraceAddress = append(call.TraceAddress, i)
 				filtecalls = append(filtecalls, call)

@@ -162,15 +162,15 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		}
 	} else if s.chainId == 5003 {
 	} else if s.chainId == 5000 {
-		//todo: support mantle natvie
-		// traces, err := s.getDebug_TraceBlock(blockNumber, client)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// tracetxs := transfer.ProcessInTxns_mantle(ctx, s.chainId, block, traces)
-		// if tracetxs != nil {
-		// 	transfers = append(transfers, tracetxs...)
-		// }
+		//support mantle natvie
+		traces, err := s.getDebug_TraceBlock(blockNumber, client)
+		if err != nil {
+			return nil, err
+		}
+		tracetxs := transfer.ProcessInTxns_mantle(ctx, s.chainId, block, traces)
+		if tracetxs != nil {
+			transfers = append(transfers, tracetxs...)
+		}
 	} else {
 		///other chains
 		traces, err := s.getTraceBlock(blockNumber, client)
