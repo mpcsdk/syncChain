@@ -8,7 +8,6 @@ import (
 	"syncChain/internal/logic/chaindata/sync/transfer"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
-	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -84,7 +83,7 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 	)
 	ch := make(chan byte, 1)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 
 	go func() {
@@ -117,10 +116,18 @@ func (s *EthModule) getReceipt(txHash common.Hash, client *util.Client) *types.R
 	}
 }
 
+var topic [][]common.Hash = [][]common.Hash{
+	{
+		common.HexToHash(transferTopic),
+		common.HexToHash(signalTopic),
+		common.HexToHash(mulTopic),
+	},
+}
+
 func (s *EthModule) getLogs(i int64, client *util.Client) ([]types.Log, error) {
 	g.Log().Debug(s.ctx, "eth_getLogs:", s.chainId, i)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 
 	var query ethereum.FilterQuery
@@ -128,6 +135,7 @@ func (s *EthModule) getLogs(i int64, client *util.Client) ([]types.Log, error) {
 	query.FromBlock = big.NewInt(i)
 	query.ToBlock = big.NewInt(i)
 	query.Addresses = s.contracts
+	query.Topics = topic
 	logs, err := client.FilterLogs(ctx, query)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintln("eth_getLogs:", i, err))

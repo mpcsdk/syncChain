@@ -192,7 +192,7 @@ func (s *EthModule) loop() {
 
 // func (s *EthModule) getChainId() int64 {
 // 	g.Log().Debug(s.ctx, "eth_getChainId:", s.chainId)
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 // 	defer cancel()
 
 // 	id, err := s.client.ChainID(ctx)
@@ -265,7 +265,7 @@ func (s *EthModule) getHeader(client *util.Client) *types.Header {
 	)
 	ch := make(chan byte, 1)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 
 	go func() {

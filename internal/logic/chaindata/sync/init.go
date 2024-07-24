@@ -1,5 +1,7 @@
 package syncBlock
 
+import "time"
+
 // var transferabi abi.ABI
 // var event20Transfer abi.Event
 var transferTopic string = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
@@ -16,6 +18,8 @@ var MintSuccessTopic string = ""
 var TakerBidTopic string = ""
 var CrossErc20_CMTopic string = ""
 var SwapCrossSuccessTopic string = ""
+
+var ctxTimeOut = 100 * time.Second
 
 // const (
 // 	transferName = "Transfer"

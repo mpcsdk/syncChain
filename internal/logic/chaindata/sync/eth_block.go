@@ -12,7 +12,6 @@ import (
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
@@ -270,7 +269,7 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash, error) {
 	g.Log().Debug(s.ctx, "eth_getBlock:", s.chainId, i)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 
 	block, hash, txFroms, txHashes, err := client.BlockByNumber(ctx, big.NewInt(i))
@@ -281,7 +280,7 @@ func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *commo
 	return block, hash, txFroms, txHashes, nil
 }
 func (s *EthModule) getTraceBlock(i int64, client *util.Client) ([]*util.Trace, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 
 	traces, err := client.TraceBlock(ctx, big.NewInt(i))
@@ -295,7 +294,7 @@ func (s *EthModule) getTraceBlock(i int64, client *util.Client) ([]*util.Trace, 
 func (s *EthModule) getTraceBlock_rpg(i int64, client *util.Client) ([]*util.TraceRpg, error) {
 	g.Log().Debug(s.ctx, "getTraceBlock_rpg:", s.chainId, i)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 	//
 	traces, err := client.TraceBlock_rpg(ctx, i)
@@ -307,7 +306,7 @@ func (s *EthModule) getTraceBlock_rpg(i int64, client *util.Client) ([]*util.Tra
 func (s *EthModule) getDebug_TraceBlock(i int64, client *util.Client) ([]*util.DebugTraceResult, error) {
 	g.Log().Debug(s.ctx, "getDebug_TraceBlock:", s.chainId, i)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
 	//
 	traces, err := client.Debug_TraceBlock(ctx, big.NewInt(i))
