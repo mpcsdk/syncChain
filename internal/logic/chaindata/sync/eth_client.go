@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"syncChain/internal/conf"
 	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
@@ -14,11 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
-)
-
-const (
-	blockWait  = 10 * time.Second
-	clientWait = 3 * time.Second
 )
 
 type contract struct {
@@ -73,8 +69,10 @@ type EthModule struct {
 	confirmedBlock int64
 	headerBlock    int64
 
-	blockTimer  *time.Timer
-	clientTimer *time.Timer
+	blockTimer *time.Timer
+	blockWait  time.Duration
+	// = time.Duration(conf.Config.Server.SyncInterval) * time.Second
+	// clientTimer *time.Timer
 
 	// abi           abi.ABI
 	// event         abi.Event
@@ -119,6 +117,8 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 		////
 		transferCh:     make(chan []*entity.ChainTransfer, 100),
 		blockTransfers: map[int64][]*entity.ChainTransfer{},
+		///
+		blockWait: time.Duration(conf.Config.Server.SyncInterval) * time.Second,
 	}
 	if chainId == 9527 {
 		///rpgtestnet
@@ -136,9 +136,9 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 		s.rpgtracecli = cli
 	}
 	////
-	s.blockTimer = time.NewTimer(2 * time.Second)
-	s.clientTimer = time.NewTimer(1 * time.Second)
-	s.clientTimer.Stop()
+	s.blockTimer = time.NewTimer(s.blockWait)
+	// s.clientTimer = time.NewTimer(1 * time.Second)
+	// s.clientTimer.Stop()
 	s.blockTimer.Stop()
 	///
 	s.loop()
@@ -150,15 +150,15 @@ func (s *EthModule) loop() {
 	go func() {
 		for {
 			select {
-			case <-s.clientTimer.C:
-				func() {
-					s.lock.Lock()
-					defer s.lock.Unlock()
+			// case <-s.clientTimer.C:
+			// 	func() {
+			// 		s.lock.Lock()
+			// 		defer s.lock.Unlock()
 
-					g.Log().Warningf(s.ctx, "%s clientTimer getClient", s.name)
-					s.getClient()
-				}()
-				break
+			// 		g.Log().Warningf(s.ctx, "%s clientTimer getClient", s.name)
+			// 		s.getClient()
+			// 	}()
+			// 	break
 			case <-s.blockTimer.C:
 				s.syncBlock()
 				break
@@ -166,10 +166,10 @@ func (s *EthModule) loop() {
 				if p {
 					g.Log().Notice(s.ctx, "pause:", s.name)
 					s.blockTimer.Stop()
-					s.clientTimer.Stop()
+					// s.clientTimer.Stop()
 				} else {
 					g.Log().Notice(s.ctx, "continue:", s.name)
-					s.blockTimer.Reset(blockWait)
+					s.blockTimer.Reset(s.blockWait)
 				}
 			case <-s.exit:
 				g.Log().Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
@@ -226,7 +226,7 @@ func (s *EthModule) getClient() *util.Client {
 
 	if err != nil {
 		g.Log().Errorf(s.ctx, "fail to dial: %s", url)
-		s.clientTimer.Reset(clientWait)
+		// s.clientTimer.Reset(clientWait)
 		return nil
 	} else {
 		g.Log().Infof(s.ctx, "dialed: %s", url)
@@ -242,12 +242,12 @@ func (s *EthModule) getURL() string {
 }
 
 func (s *EthModule) closeClient() {
-	defer func() {
-		if nil != s.clientTimer {
-			s.clientTimer.Reset(clientWait)
-		}
+	// defer func() {
+	// 	if nil != s.clientTimer {
+	// 		s.clientTimer.Reset(clientWait)
+	// 	}
 
-	}()
+	// }()
 
 	if s.client == nil {
 		return
@@ -339,7 +339,7 @@ func (s *EthModule) LastBlock() int64 {
 
 // /
 func (s *EthModule) Start() {
-	s.blockTimer.Reset(blockWait)
+	s.blockTimer.Reset(s.blockWait)
 }
 func (s *EthModule) UpdateRpc(rpcs string) {
 	s.rpcList = strings.Split(rpcs, ",")

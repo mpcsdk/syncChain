@@ -17,6 +17,7 @@ type Server struct {
 	Name          string `json:"name" v:"required"`
 	MsgSize       int64  `json:'msgSize" v:"required|min:100000"`
 	BatchSyncTask int64  `json:"batchSyncTask" v:"required|min:1"`
+	SyncInterval  int64  `json:"syncInterval" v:"required|min:1"`
 }
 type Nrpcfg struct {
 	NatsUrl string `json:"natsUrl" v:"required"`

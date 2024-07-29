@@ -35,7 +35,7 @@ func (s *EthModule) isSkipToAddr(toaddr string) bool {
 
 func (s *EthModule) syncBlock() {
 	defer func() {
-		s.blockTimer.Reset(blockWait)
+		s.blockTimer.Reset(s.blockWait)
 	}()
 
 	client := s.getClient()
@@ -50,12 +50,13 @@ func (s *EthModule) syncBlock() {
 		return
 	}
 
-	topHeight := header.Number.Int64()
+	latestBlock := header.Number.Int64()
+	topHeight := latestBlock - 6
 	s.headerBlock = topHeight
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	g.Log().Infof(s.ctx, "chainId:%d, get header. height: %d, hash: %s", s.chainId, topHeight, header.Hash().String())
+	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d, hash: %s", s.chainId, latestBlock, topHeight, header.Hash().String())
 
 	if s.lastBlock >= s.headerBlock {
 		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)

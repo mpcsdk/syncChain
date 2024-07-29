@@ -6,7 +6,6 @@ import (
 	block "syncChain/internal/logic/chaindata/sync"
 	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
-	"time"
 
 	"syncChain/internal/conf"
 
@@ -44,20 +43,6 @@ func (s *sChainData) ClientState() map[string]interface{} {
 	d["confirmed"] = s.chainclient.LastBlock()
 
 	return d
-}
-
-func (s *sChainData) logLoop() {
-	go func() {
-
-		g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", s.chainclient.Info())
-
-		for range time.Tick(time.Second * 10) {
-			if s.closed {
-				return
-			}
-			g.Log().Notice(gctx.GetInitCtx(), "blockmodule info:", s.chainclient.Info())
-		}
-	}()
 }
 
 // //
@@ -187,7 +172,6 @@ func New() *sChainData {
 	module.Start()
 	////
 	s.chainclient = module
-	s.logLoop()
 
 	return s
 }
