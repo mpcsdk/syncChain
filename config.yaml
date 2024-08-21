@@ -5,6 +5,7 @@ server:
   openapiPath: "/api.json"
   swaggerPath: "/swagger"
   batchSyncTask: 1
+  syncInterval: 1
   msgSize: 1000000
 
 logger:

@@ -137,8 +137,6 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 	}
 	////
 	s.blockTimer = time.NewTimer(s.blockWait)
-	// s.clientTimer = time.NewTimer(1 * time.Second)
-	// s.clientTimer.Stop()
 	s.blockTimer.Stop()
 	///
 	s.loop()
@@ -148,6 +146,7 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 
 func (s *EthModule) loop() {
 	go func() {
+		s.blockTimer.Reset(s.blockWait)
 		for {
 			select {
 			// case <-s.clientTimer.C:
