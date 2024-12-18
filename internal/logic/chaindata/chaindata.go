@@ -46,12 +46,13 @@ func (s *sChainData) ClientState() map[string]interface{} {
 }
 
 // //
-type SkipToAddr struct {
-	ChainId int64    `json:"chainId"`
-	Address []string `json:"contracts"`
+type SkipAddrs struct {
+	ChainId   int64    `json:"chainId"`
+	Contracts []string `json:"contracts"`
 }
 type SyncCfg struct {
-	SkipToAddr []SkipToAddr `json:"skipToAddr`
+	SkipToAddr   []SkipAddrs `json:"skipToAddr"`
+	SkipFromAddr []SkipAddrs `json:"skipFromAddr"`
 }
 
 func syncCfg(ctx context.Context, chainId int64) (*SyncCfg, error) {
@@ -158,16 +159,29 @@ func New() *sChainData {
 		if skiptoaddr.ChainId != chainId {
 			continue
 		}
-		for _, addr := range skiptoaddr.Address {
+		for _, addr := range skiptoaddr.Contracts {
 			skipToAddrs = append(skipToAddrs, common.HexToAddress(addr))
 		}
 		break
 	}
+	////
+	skipFromAddrs := []common.Address{}
+	for _, skipaddr := range syncBlockCfg.SkipFromAddr {
+		if skipaddr.ChainId != chainId {
+			continue
+		}
+		for _, addr := range skipaddr.Contracts {
+			skipFromAddrs = append(skipFromAddrs, common.HexToAddress(addr))
+		}
+		break
+	}
+	//////
+	//////
 	module := block.NewEthModule(s.ctx,
 		chainCfg.Coin,
 		chainCfg.ChainId,
 		chainCfg.Heigh,
-		rpcs, contracts, skipToAddrs)
+		rpcs, contracts, skipToAddrs, skipFromAddrs)
 	//////
 	module.Start()
 	////

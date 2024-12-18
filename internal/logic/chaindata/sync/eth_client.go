@@ -59,9 +59,10 @@ type EthModule struct {
 	name    string
 	chainId int64
 
-	contracts   []common.Address
-	skipToAddrs map[string]struct{}
-	client      *util.Client
+	contracts     []common.Address
+	skipToAddrs   map[string]struct{}
+	skipFromAddrs map[string]struct{}
+	client        *util.Client
 
 	// last block from client
 	// last block processed
@@ -93,7 +94,7 @@ type EthModule struct {
 var rpgtraceurl = "https://mainnet.rangersprotocol.com/api"
 var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
 
-func NewEthModule(ctx context.Context, name string, chainId int64, height int64, rpcList []string, contracts []common.Address, skipToAddrs []common.Address) *EthModule {
+func NewEthModule(ctx context.Context, name string, chainId int64, height int64, rpcList []string, contracts []common.Address, skipToAddrs []common.Address, skipFromAddrs []common.Address) *EthModule {
 	s := &EthModule{
 		ctx:            ctx,
 		name:           name,
@@ -108,6 +109,14 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 		skipToAddrs: func() map[string]struct{} {
 			addrs := map[string]struct{}{}
 			for _, addr := range skipToAddrs {
+				addrs[addr.String()] = struct{}{}
+			}
+			return addrs
+
+		}(),
+		skipFromAddrs: func() map[string]struct{} {
+			addrs := map[string]struct{}{}
+			for _, addr := range skipFromAddrs {
 				addrs[addr.String()] = struct{}{}
 			}
 			return addrs

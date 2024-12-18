@@ -18,16 +18,14 @@ import (
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-//	func skipToAddr(chainId int64, toaddr string) bool {
-//		if addrs, ok := conf.Config.SkipToAddrChain[chainId]; ok {
-//			if _, ok := addrs[toaddr]; ok {
-//				return true
-//			}
-//		}
-//		return false
-//	}
 func (s *EthModule) isSkipToAddr(toaddr string) bool {
 	if _, ok := s.skipToAddrs[toaddr]; ok {
+		return true
+	}
+	return false
+}
+func (s *EthModule) isSkipFromAddr(addr string) bool {
+	if _, ok := s.skipFromAddrs[addr]; ok {
 		return true
 	}
 	return false
@@ -44,19 +42,19 @@ func (s *EthModule) syncBlock() {
 		return
 	}
 
-	header := s.getHeader(client)
-	if nil == header {
+	nr, err := s.getBlockNumber(client)
+	if err != nil {
 		g.Log().Error(s.ctx, "fail to get header")
 		return
 	}
 
-	latestBlock := header.Number.Int64()
+	latestBlock := nr
 	topHeight := latestBlock - 6
 	s.headerBlock = topHeight
 	if s.lastBlock == 0 {
 		s.lastBlock = topHeight
 	}
-	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d, hash: %s", s.chainId, latestBlock, topHeight, header.Hash().String())
+	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
 
 	if s.lastBlock >= s.headerBlock {
 		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
@@ -171,16 +169,23 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		if tracetxs != nil {
 			transfers = append(transfers, tracetxs...)
 		}
-	} else {
+	} else if s.chainId == 1 ||
+		s.chainId == 1115511 ||
+		s.chainId == 56 ||
+		s.chainId == 97 {
 		///other chains
 		traces, err := s.getTraceBlock(blockNumber, client)
 		if err != nil {
-			return nil, err
+			g.Log().Warning(ctx, "getTraceBlock:", "chainId:", s.chainId, "number:", blockNumber, "err:", err)
+			//return nil, err
+		} else {
+			tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
+			if tracetxs != nil {
+				transfers = append(transfers, tracetxs...)
+			}
 		}
-		tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
-		if tracetxs != nil {
-			transfers = append(transfers, tracetxs...)
-		}
+	} else {
+		///no trace method
 	}
 	///internal
 	if len(s.contracts) != 0 {
@@ -208,7 +213,7 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 	filtertransfer := []*entity.ChainTransfer{}
 	for _, tx := range transfers {
 		if tx.Kind == "erc20" {
-			if s.isSkipToAddr(tx.To) {
+			if s.isSkipToAddr(tx.To) || s.isSkipFromAddr(tx.From) {
 				continue
 			}
 			if tx.Contract == rpgAddr {
@@ -216,7 +221,7 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 				tx.Kind = "external"
 			}
 		} else if tx.Kind == "external" {
-			if s.isSkipToAddr(tx.To) {
+			if s.isSkipToAddr(tx.To) || s.isSkipFromAddr(tx.From) {
 				continue
 			}
 		}
@@ -265,6 +270,19 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 		}
 	}
 
+}
+func (s *EthModule) getBlockNumber(client *util.Client) (int64, error) {
+	g.Log().Debug(s.ctx, "eth_blockNumber:", s.chainId)
+
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
+	defer cancel()
+
+	nr, err := client.BlockNumber(ctx)
+
+	if err != nil {
+		return 0, errors.New(fmt.Sprintln("eth_blockNumber:", err))
+	}
+	return int64(nr), nil
 }
 
 func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *common.Hash, []*common.Address, []*common.Hash, error) {

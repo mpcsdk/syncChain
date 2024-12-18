@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -32,7 +33,7 @@ type txJSON struct {
 	Type hexutil.Uint64 `json:"type"`
 
 	ChainID              *hexutil.Big    `json:"chainId,omitempty"`
-	Nonce                *hexutil.Uint64 `json:"nonce"`
+	Nonce                *string         `json:"nonce"`
 	To                   *common.Address `json:"to"`
 	Gas                  *hexutil.Uint64 `json:"gas"`
 	GasPrice             *hexutil.Big    `json:"gasPrice"`
@@ -87,7 +88,9 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	// Other fields are set conditionally depending on tx type.
 	switch itx := tx.inner.(type) {
 	case *LegacyTx:
-		enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		nonce := big.NewInt(int64(itx.Nonce))
+		noncestr := nonce.String()
+		enc.Nonce = &noncestr
 		enc.To = tx.To()
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
@@ -102,7 +105,10 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 
 	case *AccessListTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
-		enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		nonce := big.NewInt(int64(itx.Nonce))
+		noncestr := nonce.String()
+		enc.Nonce = &noncestr
+		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
 		enc.To = tx.To()
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
@@ -117,7 +123,10 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 
 	case *DynamicFeeTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
-		enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		nonce := big.NewInt(int64(itx.Nonce))
+		noncestr := nonce.String()
+		enc.Nonce = &noncestr
+		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
 		enc.To = tx.To()
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap)
@@ -133,7 +142,10 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 
 	case *BlobTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID.ToBig())
-		enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		nonce := big.NewInt(int64(itx.Nonce))
+		noncestr := nonce.String()
+		enc.Nonce = &noncestr
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap.ToBig())
 		enc.MaxPriorityFeePerGas = (*hexutil.Big)(itx.GasTipCap.ToBig())
@@ -174,7 +186,21 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		itx.Nonce = uint64(*dec.Nonce)
+		if dec.Nonce == nil {
+			itx.Nonce = 0
+		} else {
+			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
+			noncestr = strings.Trim(noncestr, "0")
+			if noncestr == "" {
+				itx.Nonce = 0
+			} else {
+				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
+				itx.Nonce = nonce.Uint64()
+			}
+
+			// uint64(*dec.Nonce)
+		}
+
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -226,7 +252,20 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		itx.Nonce = uint64(*dec.Nonce)
+		// itx.Nonce = uint64(*dec.Nonce)
+		if dec.Nonce == nil {
+			itx.Nonce = 0
+		} else {
+			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
+			noncestr = strings.Trim(noncestr, "0")
+			if noncestr == "" {
+				itx.Nonce = 0
+			} else {
+				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
+				itx.Nonce = nonce.Uint64()
+			}
+			// uint64(*dec.Nonce)
+		}
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -281,7 +320,20 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		itx.Nonce = uint64(*dec.Nonce)
+		// itx.Nonce = uint64(*dec.Nonce)
+		if dec.Nonce == nil {
+			itx.Nonce = 0
+		} else {
+			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
+			noncestr = strings.Trim(noncestr, "0")
+			if noncestr == "" {
+				itx.Nonce = 0
+			} else {
+				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
+				itx.Nonce = nonce.Uint64()
+			}
+			// uint64(*dec.Nonce)
+		}
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -340,7 +392,20 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		itx.Nonce = uint64(*dec.Nonce)
+		// itx.Nonce = uint64(*dec.Nonce)
+		if dec.Nonce == nil {
+			itx.Nonce = 0
+		} else {
+			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
+			noncestr = strings.Trim(noncestr, "0")
+			if noncestr == "" {
+				itx.Nonce = 0
+			} else {
+				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
+				itx.Nonce = nonce.Uint64()
+			}
+			// uint64(*dec.Nonce)
+		}
 		if dec.To == nil {
 			return errors.New("missing required field 'to' in transaction")
 		}

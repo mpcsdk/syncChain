@@ -25,10 +25,6 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 	// 	return nil
 	// }
 	toAddr := tx.To().String()
-	// if skipToAddr(chainId, toAddr) {
-	// 	g.Log().Info(ctx, "process20 skipaddr:", chainId, toAddr, tx.Hash().String())
-	// 	return nil
-	// }
 
 	gas := strconv.FormatUint(tx.Gas(), 10)
 	gasPrice := tx.GasPrice().String()

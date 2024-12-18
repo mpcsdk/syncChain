@@ -12,8 +12,8 @@ func (obj *Header) EncodeRLP(_w io.Writer) error {
 	w.WriteBytes(obj.UncleHash[:])
 	w.WriteBytes(obj.Coinbase[:])
 	w.WriteBytes(obj.Root[:])
-	w.WriteBytes(obj.TxHash[:])
-	w.WriteBytes(obj.ReceiptHash[:])
+	w.WriteBytes(obj.TransactionsRoot[:])
+	w.WriteBytes(obj.ReceiptsRoot[:])
 	w.WriteBytes(obj.Bloom[:])
 	if obj.Difficulty == nil {
 		w.Write(rlp.EmptyString)
