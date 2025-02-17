@@ -52,19 +52,19 @@ func (s *EthModule) syncBlock() {
 
 	latestBlock := nr
 	topHeight := latestBlock - 6
-	startNumber := s.currentBlock + 1
-	if startNumber >= topHeight {
-		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.currentBlock)
-		return
-	}
-
 	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
 	////
 	//// syncbatchblock
 	for {
 		if topHeight > s.currentBlock {
 			////batch proccess 10block
-			endNumber := startNumber + conf.Config.Server.BatchSyncTask
+			startNumber := s.currentBlock + 1
+			if startNumber >= topHeight {
+				g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.currentBlock)
+				return
+			}
+
+			endNumber := s.currentBlock + conf.Config.Server.BatchSyncTask
 			if endNumber > topHeight {
 				endNumber = topHeight
 			}

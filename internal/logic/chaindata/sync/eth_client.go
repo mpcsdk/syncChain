@@ -101,7 +101,7 @@ func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcLis
 		panic(err)
 	}
 	///
-	tracer := tracetx.NewTraceSyncer(ctx, chainId, rpcList[0], time.Duration(conf.Config.Server.SyncInterval))
+	tracer := tracetx.NewTraceSyncer(ctx, chainId, rpcList[0], time.Duration(conf.Config.Server.SyncInterval)*time.Second*2)
 	s := &EthModule{
 		ctx:          ctx,
 		chainId:      chainId,
