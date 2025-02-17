@@ -32,10 +32,10 @@ type sChainData struct {
 	////
 }
 
-func (s *sChainData) Close() {
-	s.closed = true
-	s.chainclient.Close()
-}
+//	func (s *sChainData) Close() {
+//		s.closed = true
+//		// s.chainclient.Close()
+//	}
 func (s *sChainData) ClientState() map[string]interface{} {
 	d := map[string]interface{}{}
 	d["chainId"] = s.chainclient.ChainId()
@@ -178,7 +178,6 @@ func New() *sChainData {
 	//////
 	//////
 	module := block.NewEthModule(s.ctx,
-		chainCfg.Coin,
 		chainCfg.ChainId,
 		chainCfg.Heigh,
 		rpcs, contracts, skipToAddrs, skipFromAddrs)

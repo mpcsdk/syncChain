@@ -14,6 +14,8 @@ import (
 	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
@@ -36,7 +38,7 @@ func (s *EthModule) syncBlock() {
 		s.blockTimer.Reset(s.blockWait)
 	}()
 
-	client := s.getClient()
+	client := s.cli
 	if nil == client {
 		g.Log().Errorf(s.ctx, "fail to get client")
 		return
@@ -50,23 +52,19 @@ func (s *EthModule) syncBlock() {
 
 	latestBlock := nr
 	topHeight := latestBlock - 6
-	s.headerBlock = topHeight
-	if s.lastBlock == 0 {
-		s.lastBlock = topHeight
-	}
-	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
-
-	if s.lastBlock >= s.headerBlock {
-		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.lastBlock)
+	startNumber := s.currentBlock + 1
+	if startNumber >= topHeight {
+		g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.currentBlock)
 		return
 	}
+
+	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
 	////
 	//// syncbatchblock
 	for {
-		if topHeight > s.lastBlock {
+		if topHeight > s.currentBlock {
 			////batch proccess 10block
-			startNumber := s.lastBlock + 1
-			endNumber := s.lastBlock + conf.Config.Server.BatchSyncTask
+			endNumber := startNumber + conf.Config.Server.BatchSyncTask
 			if endNumber > topHeight {
 				endNumber = topHeight
 			}
@@ -114,7 +112,8 @@ func (s *EthModule) syncBlock() {
 				s.transferCh <- txsmap[v]
 			}
 			g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, cnt)
-			s.lastBlock = endNumber
+			s.currentBlock = endNumber
+			// s.lastBlock = endNumber
 		} else {
 			return
 		}
@@ -124,9 +123,10 @@ func (s *EthModule) syncBlock() {
 
 var rpgAddr = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB").String()
 
-func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client *util.Client) ([]*entity.ChainTransfer, error) {
+func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client *ethclient.Client) ([]*entity.ChainTransfer, error) {
 	transfers := []*entity.ChainTransfer{}
-	block, _, txFroms, txHashes, err := s.getBlock(blockNumber, client)
+	// block, _, txFroms, txHashes, err := s.getBlockByNumber(blockNumber, client)
+	block, err := s.getBlockByNumber(blockNumber, client)
 	if err != nil {
 		return nil, err
 	}
@@ -141,55 +141,22 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 		if tx == nil || tx.To() == nil || 0 == value.Sign() {
 			continue
 		}
-		tx := transfer.ProcessTx(ctx, s.chainId, block, tx, txFroms, txHashes, index)
+		tx := transfer.ProcessBlock(ctx, block, tx, index)
 		if tx != nil {
 			transfers = append(transfers, tx)
 		}
 	}
 	g.Log().Debugf(ctx, "getTransaction,chainId:%d , number:%d, tx:%v", s.chainId, blockNumber, len(transfers))
 	/////notice: trace_block Internal Txns
-	if s.chainId == 9527 || s.chainId == 2025 {
-		/// for rpg method
-		traces, err := s.getTraceBlock_rpg(blockNumber, s.rpgtracecli)
-		if err != nil {
-			return nil, err
-		}
-		tracetxs := transfer.ProcessInTxnsRpg(ctx, s.chainId, block, traces)
-		if len(tracetxs) > 0 {
-			transfers = append(transfers, tracetxs...)
-		}
-	} else if s.chainId == 5003 {
-	} else if s.chainId == 5000 {
-		//support mantle natvie
-		traces, err := s.getDebug_TraceBlock(blockNumber, client)
-		if err != nil {
-			return nil, err
-		}
-		tracetxs := transfer.ProcessInTxns_mantle(ctx, s.chainId, block, traces)
-		if tracetxs != nil {
-			transfers = append(transfers, tracetxs...)
-		}
-	} else if s.chainId == 1 ||
-		s.chainId == 1115511 ||
-		s.chainId == 56 ||
-		s.chainId == 97 {
-		///other chains
-		traces, err := s.getTraceBlock(blockNumber, client)
-		if err != nil {
-			g.Log().Warning(ctx, "getTraceBlock:", "chainId:", s.chainId, "number:", blockNumber, "err:", err)
-			//return nil, err
-		} else {
-			tracetxs := transfer.ProcessInTxns(ctx, s.chainId, block, traces)
-			if tracetxs != nil {
-				transfers = append(transfers, tracetxs...)
-			}
-		}
-	} else {
-		///no trace method
+	traceTransfer, err := s.tracer.GetTraceTransfer(ctx, block)
+	if err != nil {
+		g.Log().Error(ctx, "fail to getTraceBlock:", blockNumber, err)
+		return nil, errors.New(fmt.Sprintln("fail GetTraceTransfer:", blockNumber))
 	}
-	///internal
-	if len(s.contracts) != 0 {
-		logs, err := s.getLogs(blockNumber, client)
+	transfers = append(transfers, traceTransfer...)
+	///logs
+	if len(s.syncContracts) != 0 {
+		logs, err := s.getLogs(blockNumber)
 		if err != nil {
 			return nil, err
 		}
@@ -234,7 +201,7 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 
 func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	/////
-	g.Log().Debug(s.ctx, "persistenceTransfer:", s.chainId, s.lastBlock, txs)
+	g.Log().Debug(s.ctx, "persistenceTransfer:", s.chainId, s.currentBlock, txs)
 	if len(txs) > 0 {
 		// send latestTx
 		service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
@@ -244,8 +211,8 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 		g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
 	}
 	for i, txs := range s.blockTransfers {
-		// /when last == topHeight - 12 insert into db
-		if i > s.lastBlock-12 {
+		// wait 12 block when block is confirmed
+		if i > s.currentBlock-12 {
 			err := service.DB().InsertTransfer_Transaction(s.ctx, s.chainId, txs)
 			if err != nil {
 				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
@@ -271,7 +238,7 @@ func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
 	}
 
 }
-func (s *EthModule) getBlockNumber(client *util.Client) (int64, error) {
+func (s *EthModule) getBlockNumber(client *ethclient.Client) (int64, error) {
 	g.Log().Debug(s.ctx, "eth_blockNumber:", s.chainId)
 
 	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
@@ -298,6 +265,20 @@ func (s *EthModule) getBlock(i int64, client *util.Client) (*types.Block, *commo
 	}
 	return block, hash, txFroms, txHashes, nil
 }
+func (s *EthModule) getBlockByNumber(i int64, client *ethclient.Client) (*ethtypes.Block, error) {
+	g.Log().Debug(s.ctx, "eth_getBlock:", s.chainId, i)
+
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
+	defer cancel()
+
+	block, err := client.BlockByNumber(ctx, big.NewInt(i))
+
+	if err != nil {
+		return nil, errors.New(fmt.Sprintln("eth_getBlock:", i, err))
+	}
+	return block, nil
+}
+
 func (s *EthModule) getTraceBlock(i int64, client *util.Client) ([]*util.Trace, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
 	defer cancel()
@@ -333,4 +314,19 @@ func (s *EthModule) getDebug_TraceBlock(i int64, client *util.Client) ([]*util.D
 		return nil, errors.New(fmt.Sprintln("getDebug_TraceBlock:", i, err))
 	}
 	return traces, nil
+}
+func (s *EthModule) getHeader(client *util.Client) (*types.Header, error) {
+	g.Log().Debug(s.ctx, "eth_Header:", s.chainId)
+	// var (
+	// 	header *types.Header
+	// 	err    error
+	// )
+	// ch := make(chan byte, 1)
+
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
+	defer cancel()
+
+	header, err := client.HeaderByNumber(ctx, nil)
+
+	return header, err
 }

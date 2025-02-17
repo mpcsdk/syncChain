@@ -3,15 +3,15 @@ package transfer
 import (
 	"context"
 	"math/big"
-	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.Log) []*entity.ChainTransfer {
+func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) []*entity.ChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
@@ -57,7 +57,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *types.L
 	return datas
 }
 
-func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.ChainTransfer {
+func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.ChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[3].Bytes())

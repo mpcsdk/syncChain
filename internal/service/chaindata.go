@@ -7,7 +7,10 @@ package service
 
 type (
 	IChainData interface {
-		Close()
+		//	func (s *sChainData) Close() {
+		//		s.closed = true
+		//		// s.chainclient.Close()
+		//	}
 		ClientState() map[string]interface{}
 	}
 )

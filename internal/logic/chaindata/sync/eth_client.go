@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"syncChain/internal/conf"
-	"syncChain/internal/logic/chaindata/types"
-	"syncChain/internal/logic/chaindata/util"
+	tracetx "syncChain/internal/logic/chaindata/sync/traceTx"
 	"syncChain/internal/service"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
@@ -51,24 +51,28 @@ func (s *contracts) Addresses() []common.Address {
 
 type EthModule struct {
 	ctx    context.Context
-	exit   chan bool
-	pause  chan bool
-	closed bool
+	cli    *ethclient.Client
+	tracer tracetx.ITraceSyncer
+	// exit   chan bool
+	// pause  chan bool
+	// closed bool
 	///
 	rpcList []string
-	name    string
+	// name    string
 	chainId int64
 
-	contracts     []common.Address
+	////
+	syncContracts []common.Address
 	skipToAddrs   map[string]struct{}
 	skipFromAddrs map[string]struct{}
-	client        *util.Client
 
+	// client        *util.Client
 	// last block from client
 	// last block processed
-	lastBlock      int64
-	confirmedBlock int64
-	headerBlock    int64
+	lastBlock    int64
+	currentBlock int64
+	// confirmedBlock int64
+	// startBlock int64
 
 	blockTimer *time.Timer
 	blockWait  time.Duration
@@ -78,9 +82,7 @@ type EthModule struct {
 	// abi           abi.ABI
 	// event         abi.Event
 	// transferTopic string
-
 	lock sync.Mutex
-
 	//
 	// logger     *glog.Logger
 	// chaincfgdb *mpcdao.ChainCfg
@@ -88,24 +90,31 @@ type EthModule struct {
 	transferCh     chan []*entity.ChainTransfer
 	blockTransfers map[int64][]*entity.ChainTransfer
 	///
-	rpgtracecli *util.Client
 }
 
-var rpgtraceurl = "https://mainnet.rangersprotocol.com/api"
-var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
+// var rpgtraceurl = "https://mainnet.rangersprotocol.com/api"
+// var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
 
-func NewEthModule(ctx context.Context, name string, chainId int64, height int64, rpcList []string, contracts []common.Address, skipToAddrs []common.Address, skipFromAddrs []common.Address) *EthModule {
+func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcList []string, syncContracts []common.Address, skipToAddrs []common.Address, skipFromAddrs []common.Address) *EthModule {
+	cli, err := ethclient.Dial(rpcList[0])
+	if err != nil {
+		panic(err)
+	}
+	///
+	tracer := tracetx.NewTraceSyncer(ctx, chainId, rpcList[0], time.Duration(conf.Config.Server.SyncInterval))
 	s := &EthModule{
-		ctx:            ctx,
-		name:           name,
-		chainId:        chainId,
-		lastBlock:      height,
-		confirmedBlock: height,
-		rpcList:        rpcList,
-		exit:           make(chan bool),
-		pause:          make(chan bool),
-		closed:         false,
-		contracts:      contracts,
+		ctx:          ctx,
+		chainId:      chainId,
+		currentBlock: currentBlock,
+		// startBlock:   currentBlock,
+		// lastBlock: currentBlock,
+		rpcList: rpcList,
+		cli:     cli,
+		tracer:  tracer,
+		// exit:           make(chan bool),
+		// pause:          make(chan bool),
+		// closed:         false,
+		syncContracts: syncContracts,
 		skipToAddrs: func() map[string]struct{} {
 			addrs := map[string]struct{}{}
 			for _, addr := range skipToAddrs {
@@ -129,21 +138,21 @@ func NewEthModule(ctx context.Context, name string, chainId int64, height int64,
 		///
 		blockWait: time.Duration(conf.Config.Server.SyncInterval) * time.Second,
 	}
-	if chainId == 9527 {
-		///rpgtestnet
-		cli, err := util.DialContext(ctx, rpgtraceurl_testnet)
-		if err != nil {
-			panic(err)
-		}
-		s.rpgtracecli = cli
-	} else if chainId == 2025 {
-		////rpg
-		cli, err := util.DialContext(ctx, rpgtraceurl)
-		if err != nil {
-			panic(err)
-		}
-		s.rpgtracecli = cli
-	}
+	// if chainId == 9527 {
+	// 	///rpgtestnet
+	// 	cli, err := util.DialContext(ctx, rpgtraceurl_testnet)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	s.rpgtracecli = cli
+	// } else if chainId == 2025 {
+	// 	////rpg
+	// 	cli, err := util.DialContext(ctx, rpgtraceurl)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	s.rpgtracecli = cli
+	// }
 	////
 	s.blockTimer = time.NewTimer(s.blockWait)
 	s.blockTimer.Stop()
@@ -167,21 +176,25 @@ func (s *EthModule) loop() {
 			// 		s.getClient()
 			// 	}()
 			// 	break
+			case <-s.ctx.Done():
+				g.Log().Info(s.ctx, "exit, at height: ", s.currentBlock)
+				return
 			case <-s.blockTimer.C:
 				s.syncBlock()
 				break
-			case p := <-s.pause:
-				if p {
-					g.Log().Notice(s.ctx, "pause:", s.name)
-					s.blockTimer.Stop()
-					// s.clientTimer.Stop()
-				} else {
-					g.Log().Notice(s.ctx, "continue:", s.name)
-					s.blockTimer.Reset(s.blockWait)
-				}
-			case <-s.exit:
-				g.Log().Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
-				return
+				// case p := <-s.pause:
+				// 	if p {
+				// 		g.Log().Notice(s.ctx, "pause:", s.name)
+				// 		s.blockTimer.Stop()
+				// 		// s.clientTimer.Stop()
+				// 	} else {
+				// 		g.Log().Notice(s.ctx, "continue:", s.name)
+				// 		s.blockTimer.Reset(s.blockWait)
+				// 	}
+				// case <-s.exit:
+				// 	g.Log().Debugf(s.ctx, "exit, at height: %d", s.lastBlock)
+				// 	return
+				// }
 			}
 		}
 	}()
@@ -224,86 +237,51 @@ func (s *EthModule) loop() {
 // 	return chainId
 // }
 
-func (s *EthModule) getClient() *util.Client {
-	if s.client != nil {
-		return s.client
-	}
+// func (s *EthModule) getClient() *util.Client {
+// 	if s.client != nil {
+// 		return s.client
+// 	}
 
-	url := s.getURL()
-	client, err := util.Dial(url)
+// 	url := s.getURL()
+// 	client, err := util.Dial(url)
 
-	if err != nil {
-		g.Log().Errorf(s.ctx, "fail to dial: %s", url)
-		// s.clientTimer.Reset(clientWait)
-		return nil
-	} else {
-		g.Log().Infof(s.ctx, "dialed: %s", url)
-	}
+// 	if err != nil {
+// 		g.Log().Errorf(s.ctx, "fail to dial: %s", url)
+// 		// s.clientTimer.Reset(clientWait)
+// 		return nil
+// 	} else {
+// 		g.Log().Infof(s.ctx, "dialed: %s", url)
+// 	}
 
-	s.client = client
-	return client
-}
+// 	s.client = client
+// 	return client
+// }
 
 func (s *EthModule) getURL() string {
 	index := time.Now().Second() % len(s.rpcList)
 	return strings.TrimSpace(s.rpcList[index])
 }
 
-func (s *EthModule) closeClient() {
-	// defer func() {
-	// 	if nil != s.clientTimer {
-	// 		s.clientTimer.Reset(clientWait)
-	// 	}
+// func (s *EthModule) closeClient() {
+// 	// defer func() {
+// 	// 	if nil != s.clientTimer {
+// 	// 		s.clientTimer.Reset(clientWait)
+// 	// 	}
 
-	// }()
+// 	// }()
 
-	if s.client == nil {
-		return
-	}
+// 	if s.client == nil {
+// 		return
+// 	}
 
-	s.client.Close()
-	s.client = nil
-}
-
-func (s *EthModule) getHeader(client *util.Client) *types.Header {
-	g.Log().Debug(s.ctx, "eth_Header:", s.chainId)
-	var (
-		header *types.Header
-		err    error
-	)
-	ch := make(chan byte, 1)
-
-	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeOut)
-	defer cancel()
-
-	go func() {
-		header, err = client.HeaderByNumber(ctx, nil)
-		ch <- 0
-	}()
-
-	select {
-	case <-ch:
-		if err != nil {
-			g.Log().Error(s.ctx, "fail to get blockHeader:", s.chainId, "err:", err)
-			s.closeClient()
-			return nil
-		}
-		return header
-	case <-ctx.Done():
-		g.Log().Error(s.ctx, "fail to get blockHeader:", s.chainId, " timeout")
-		s.closeClient()
-		return nil
-	}
-
-}
+// 	s.client.Close()
+// 	s.client = nil
+// }
 
 func (s *EthModule) updateHeight(number int64) {
-	if s.confirmedBlock >= number {
-		return
-	}
-	s.confirmedBlock = number
-	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, s.confirmedBlock)
-	err := service.DB().ChainCfg().UpdateHeigh(s.ctx, s.chainId, s.confirmedBlock)
+
+	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, number)
+	err := service.DB().ChainCfg().UpdateHeigh(s.ctx, s.chainId, number)
 	if err != nil {
 		g.Log().Fatalf(s.ctx, "fail to update height, err: %s", err)
 	}
@@ -312,30 +290,30 @@ func (s *EthModule) updateHeight(number int64) {
 // //
 // //
 func (s *EthModule) Info() string {
-	return fmt.Sprintf("%s|%d|%d|%d,contracts:%d", s.name, s.chainId, s.confirmedBlock, s.lastBlock, len(s.contracts))
+	return fmt.Sprintf("%s|%d|%d|%d,contracts:%d", s.chainId, s.currentBlock, s.lastBlock, len(s.syncContracts))
 }
-func (s *EthModule) Close() {
-	if s.closed {
-		return
-	}
-	s.closed = true
-	s.closeClient()
-	s.exit <- true
-}
-func (s *EthModule) Pause() {
-	if s.closed {
-		return
-	}
 
-	s.pause <- true
-}
-func (s *EthModule) Continue() {
-	if s.closed {
-		return
-	}
+//	func (s *EthModule) Close() {
+//		if s.closed {
+//			return
+//		}
+//		s.closed = true
+//		s.closeClient()
+//		s.exit <- true
+//	}
+// func (s *EthModule) Pause() {
+// 	if s.closed {
+// 		return
+// 	}
 
-	s.pause <- false
-}
+//	}
+// func (s *EthModule) Continue() {
+// 	if s.closed {
+// 		return
+// 	}
+
+// 	s.pause <- false
+// }
 
 // /
 func (s *EthModule) ChainId() int64 {
