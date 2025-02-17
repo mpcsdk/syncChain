@@ -19,8 +19,8 @@ type sDB struct {
 	r             *gredis.Redis
 	dur           int
 	chainTransfer map[int64]*mpcdao.ChainTransfer
-	riskCtrlRule  *mpcdao.RiskCtrlRule
-	chainCfg      *mpcdao.ChainCfg
+	riskadmin     *mpcdao.RiskAdminDB
+	// chainCfg      *mpcdao.ChainCfg
 }
 
 func isPgErr(err error, key string) bool {
@@ -116,12 +116,17 @@ func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, dat
 	///
 	return nil
 }
-func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
-	return s.riskCtrlRule
+func (s *sDB) RiskAdmin() *mpcdao.RiskAdminDB {
+	return s.riskadmin
 }
-func (s *sDB) ChainCfg() *mpcdao.ChainCfg {
-	return s.chainCfg
-}
+
+//	func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
+//		return s.riskCtrlRule
+//	}
+//
+//	func (s *sDB) ChainCfg() *mpcdao.ChainCfg {
+//		return s.chainCfg
+//	}
 func New() *sDB {
 
 	///
@@ -135,9 +140,10 @@ func New() *sDB {
 		r:             r,
 		dur:           conf.Config.Cache.SessionDuration,
 		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
+		riskadmin:     mpcdao.NewRiskAdminDB(r, conf.Config.Cache.SessionDuration),
 		//mapmpcdao.NewChainTransfer(r, conf.Config.Cache.SessionDuration),
-		riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
-		chainCfg:     mpcdao.NewChainCfg(r, conf.Config.Cache.SessionDuration),
+		// riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
+		// chainCfg:     mpcdao.NewChainCfg(r, conf.Config.Cache.SessionDuration),
 	}
 	return s
 }

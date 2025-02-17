@@ -281,7 +281,7 @@ func (s *EthModule) getURL() string {
 func (s *EthModule) updateHeight(number int64) {
 
 	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, number)
-	err := service.DB().ChainCfg().UpdateHeigh(s.ctx, s.chainId, number)
+	err := service.DB().RiskAdmin().UpdateHeigh(s.ctx, s.chainId, number)
 	if err != nil {
 		g.Log().Fatalf(s.ctx, "fail to update height, err: %s", err)
 	}

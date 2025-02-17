@@ -27,7 +27,7 @@ type sChainData struct {
 	closed      bool
 	nats        *mq.NatsServer
 	/////
-	riskCtrlRule *mpcdao.RiskCtrlRule
+	riskCtrlRule *mpcdao.RiskAdminDB
 	// chainCfg     *mpcdao.ChainCfg
 	////
 }
@@ -99,7 +99,7 @@ func New() *sChainData {
 		panic("chainId")
 	}
 	////chaincfg from db
-	chainCfg, err := service.DB().ChainCfg().GetCfg(ctx, chainId)
+	chainCfg, err := service.DB().RiskAdmin().GetChainCfg(ctx, chainId)
 	if err != nil {
 		panic(err)
 	}
@@ -120,8 +120,9 @@ func New() *sChainData {
 	}
 	////
 	///filter contracts
-	riskCtrlRule := mpcdao.NewRiskCtrlRule(nil, 0)
-	briefs, err := riskCtrlRule.GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
+	// riskCtrlRule := mpcdao.NewRiskCtrlRule(nil, 0)
+	// briefs, err := riskCtrlRule.GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
+	briefs, err := service.DB().RiskAdmin().GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
 	if err != nil {
 		panic(err)
 	}

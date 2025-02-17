@@ -20,8 +20,7 @@ type (
 		DelChainBlock(ctx context.Context, chainId int64, block int64) error
 		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error
 		InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.ChainTransfer) error
-		ContractAbi() *mpcdao.RiskCtrlRule
-		ChainCfg() *mpcdao.ChainCfg
+		RiskAdmin() *mpcdao.RiskAdminDB
 	}
 )
 
