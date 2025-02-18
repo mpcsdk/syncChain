@@ -13,9 +13,9 @@ import (
 
 type (
 	IEvnetSender interface {
-		SendEvnetBatch(ctx context.Context, datas []*entity.ChainTransfer)
-		SendEvnetBatch_Latest(ctx context.Context, datas []*entity.ChainTransfer)
-		SendEvent(ctx context.Context, data *entity.ChainTransfer)
+		SendEvnetBatch(ctx context.Context, datas []*entity.SyncchainChainTransfer)
+		SendEvnetBatch_Latest(ctx context.Context, datas []*entity.SyncchainChainTransfer)
+		SendEvent(ctx context.Context, data *entity.SyncchainChainTransfer)
 	}
 )
 

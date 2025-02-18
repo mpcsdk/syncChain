@@ -3,7 +3,6 @@ package syncBlock
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -57,7 +56,7 @@ type EthModule struct {
 	// pause  chan bool
 	// closed bool
 	///
-	rpcList []string
+	rpcUrl string
 	// name    string
 	chainId int64
 
@@ -87,24 +86,31 @@ type EthModule struct {
 	// logger     *glog.Logger
 	// chaincfgdb *mpcdao.ChainCfg
 	////
-	transferCh     chan []*entity.ChainTransfer
-	blockTransfers map[int64][]*entity.ChainTransfer
+	transferCh     chan []*entity.SyncchainChainTransfer
+	blockTransfers map[int64][]*entity.SyncchainChainTransfer
 	///
 }
 
 // var rpgtraceurl = "https://mainnet.rangersprotocol.com/api"
 // var rpgtraceurl_testnet = "https://robin-api.rangersprotocol.com"
 
-func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcList []string, syncContracts []common.Address, skipToAddrs []common.Address, skipFromAddrs []common.Address) *EthModule {
-	cli, err := ethclient.Dial(rpcList[0])
+func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcUrl string, syncContracts []common.Address, skipToAddrs []common.Address, skipFromAddrs []common.Address) *EthModule {
+	cli, err := ethclient.Dial(rpcUrl)
 	if err != nil {
 		panic(err)
+	}
+	if currentBlock == 0 {
+		nr, err := cli.BlockNumber(ctx)
+		if err != nil {
+			panic(err)
+		}
+		currentBlock = int64(nr)
 	}
 	///
 	tracer := tracetx.NewTraceSyncer(
 		ctx, chainId,
-		rpcList[0],
-		time.Duration(conf.Config.Server.TimeOut)*time.Second,
+		rpcUrl,
+		time.Duration(conf.Config.Syncing.TimeOut)*time.Second,
 	)
 	s := &EthModule{
 		ctx:          ctx,
@@ -112,9 +118,9 @@ func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcLis
 		currentBlock: currentBlock,
 		// startBlock:   currentBlock,
 		// lastBlock: currentBlock,
-		rpcList: rpcList,
-		cli:     cli,
-		tracer:  tracer,
+		rpcUrl: rpcUrl,
+		cli:    cli,
+		tracer: tracer,
 		// exit:           make(chan bool),
 		// pause:          make(chan bool),
 		// closed:         false,
@@ -137,10 +143,10 @@ func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcLis
 		}(),
 		// chaincfgdb:     mpcdao.NewChainCfg(nil, 0),
 		////
-		transferCh:     make(chan []*entity.ChainTransfer, 100),
-		blockTransfers: map[int64][]*entity.ChainTransfer{},
+		transferCh:     make(chan []*entity.SyncchainChainTransfer, 100),
+		blockTransfers: map[int64][]*entity.SyncchainChainTransfer{},
 		///
-		blockWait: time.Duration(conf.Config.Server.BlockInterval) * time.Second,
+		blockWait: time.Duration(conf.Config.Syncing.BlockInterval) * time.Second,
 	}
 	// if chainId == 9527 {
 	// 	///rpgtestnet
@@ -261,10 +267,10 @@ func (s *EthModule) loop() {
 // 	return client
 // }
 
-func (s *EthModule) getURL() string {
-	index := time.Now().Second() % len(s.rpcList)
-	return strings.TrimSpace(s.rpcList[index])
-}
+// func (s *EthModule) getURL() string {
+// 	// index := time.Now().Second() % len(s.rpcUrl)
+// 	return strings.TrimSpace(s.rpcUrl)
+// }
 
 // func (s *EthModule) closeClient() {
 // 	// defer func() {
@@ -285,7 +291,7 @@ func (s *EthModule) getURL() string {
 func (s *EthModule) updateHeight(number int64) {
 
 	g.Log().Infof(s.ctx, "chainId:%d, updateHeight: %d", s.chainId, number)
-	err := service.DB().RiskAdmin().UpdateHeigh(s.ctx, s.chainId, number)
+	err := service.DB().UpdateState(s.ctx, s.chainId, number)
 	if err != nil {
 		g.Log().Fatalf(s.ctx, "fail to update height, err: %s", err)
 	}
@@ -331,9 +337,10 @@ func (s *EthModule) LastBlock() int64 {
 func (s *EthModule) Start() {
 	s.blockTimer.Reset(s.blockWait)
 }
-func (s *EthModule) UpdateRpc(rpcs string) {
-	s.rpcList = strings.Split(rpcs, ",")
-}
+
+// func (s *EthModule) UpdateRpc(rpcs string) {
+// 	s.rpcList = strings.Split(rpcs, ",")
+// }
 
 // /
 // func (s *EthModule) UpdateContract(addr common.Address, name string) {

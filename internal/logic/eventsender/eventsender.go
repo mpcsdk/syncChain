@@ -18,7 +18,7 @@ type sEvnetSender struct {
 func NewMsg() *sEvnetSender {
 	nats := mq.New(conf.Config.Nrpc.NatsUrl)
 	jet := nats.JetStream()
-	_, err := nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
+	_, err := nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Syncing.MsgSize)
 	if err != nil {
 		panic(err)
 	}
@@ -29,7 +29,7 @@ func NewMsg() *sEvnetSender {
 	}
 
 }
-func (s *sEvnetSender) SendEvnetBatch(ctx context.Context, datas []*entity.ChainTransfer) {
+func (s *sEvnetSender) SendEvnetBatch(ctx context.Context, datas []*entity.SyncchainChainTransfer) {
 	////sync tx to mq
 	for _, data := range datas {
 		d, _ := json.Marshal(data)
@@ -40,7 +40,7 @@ func (s *sEvnetSender) SendEvnetBatch(ctx context.Context, datas []*entity.Chain
 	}
 	///
 }
-func (s *sEvnetSender) SendEvnetBatch_Latest(ctx context.Context, datas []*entity.ChainTransfer) {
+func (s *sEvnetSender) SendEvnetBatch_Latest(ctx context.Context, datas []*entity.SyncchainChainTransfer) {
 	////sync tx to mq
 	for _, data := range datas {
 		d, _ := json.Marshal(data)
@@ -51,7 +51,7 @@ func (s *sEvnetSender) SendEvnetBatch_Latest(ctx context.Context, datas []*entit
 	}
 	///
 }
-func (s *sEvnetSender) SendEvent(ctx context.Context, data *entity.ChainTransfer) {
+func (s *sEvnetSender) SendEvent(ctx context.Context, data *entity.SyncchainChainTransfer) {
 	////sync tx to mq
 	d, _ := json.Marshal(data)
 	_, err := s.jet.PublishAsync(mq.JetSub_SyncChainTransfer, d)

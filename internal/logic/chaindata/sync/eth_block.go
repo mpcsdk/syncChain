@@ -51,7 +51,7 @@ func (s *EthModule) syncBlock() {
 	}
 
 	latestBlock := nr
-	topHeight := latestBlock - 6
+	topHeight := latestBlock - conf.Config.Syncing.WaitBlock
 	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
 	////
 	//// syncbatchblock
@@ -64,7 +64,7 @@ func (s *EthModule) syncBlock() {
 				return
 			}
 
-			endNumber := s.currentBlock + conf.Config.Server.BatchSyncTask
+			endNumber := s.currentBlock + conf.Config.Syncing.BatchSyncTask
 			if endNumber > topHeight {
 				endNumber = topHeight
 			}
@@ -72,7 +72,7 @@ func (s *EthModule) syncBlock() {
 			wg := sync.WaitGroup{}
 			lock := sync.Mutex{}
 			//////
-			txsmap := map[int64][]*entity.ChainTransfer{}
+			txsmap := map[int64][]*entity.SyncchainChainTransfer{}
 			errmap := map[int64]error{}
 			///
 			for i := startNumber; i <= endNumber; i++ {
@@ -123,8 +123,8 @@ func (s *EthModule) syncBlock() {
 
 var rpgAddr = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB").String()
 
-func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client *ethclient.Client) ([]*entity.ChainTransfer, error) {
-	transfers := []*entity.ChainTransfer{}
+func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client *ethclient.Client) ([]*entity.SyncchainChainTransfer, error) {
+	transfers := []*entity.SyncchainChainTransfer{}
 	// block, _, txFroms, txHashes, err := s.getBlockByNumber(blockNumber, client)
 	block, err := s.getBlockByNumber(blockNumber, client)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 	}
 	///filter transfer of to in toaddrlist
 	///and rpg contract to native
-	filtertransfer := []*entity.ChainTransfer{}
+	filtertransfer := []*entity.SyncchainChainTransfer{}
 	for _, tx := range transfers {
 		if tx.Kind == "erc20" {
 			if s.isSkipToAddr(tx.To) || s.isSkipFromAddr(tx.From) {
@@ -199,7 +199,7 @@ func (s *EthModule) processBlock(ctx context.Context, blockNumber int64, client 
 	return transfers, nil
 }
 
-func (s *EthModule) persistenceTransfer(txs []*entity.ChainTransfer) {
+func (s *EthModule) persistenceTransfer(txs []*entity.SyncchainChainTransfer) {
 	/////
 	g.Log().Debug(s.ctx, "persistenceTransfer:", s.chainId, s.currentBlock, txs)
 	if len(txs) > 0 {

@@ -27,8 +27,8 @@ func isDuplicateKeyErr(err error) bool {
 	return false
 }
 
-func (s *EthModule) processEvent(ts int64, logs []ethtypes.Log) []*entity.ChainTransfer {
-	txs := []*entity.ChainTransfer{}
+func (s *EthModule) processEvent(ts int64, logs []ethtypes.Log) []*entity.SyncchainChainTransfer {
+	txs := []*entity.SyncchainChainTransfer{}
 	for _, log := range logs {
 
 		topic := log.Topics[0].String()

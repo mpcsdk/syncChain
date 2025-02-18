@@ -60,7 +60,7 @@ package tracetx
 // 	Code    string `json:"code"`
 // }
 
-// func (s *EthTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.ChainTransfer, error) {
+// func (s *EthTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SynctransferTransfer, error) {
 // 	ctx, cancel := context.WithTimeout(ctx, s.ctxTimeOut)
 // 	defer cancel()
 
@@ -81,7 +81,7 @@ package tracetx
 // 	return head, err
 // }
 
-// func (s *EthTrace) processInTxns(ctx context.Context, block *ethtypes.Block, traces []*Trace) []*entity.ChainTransfer {
+// func (s *EthTrace) processInTxns(ctx context.Context, block *ethtypes.Block, traces []*Trace) []*entity.SynctransferTransfer {
 // 	///
 
 // 	////
@@ -95,7 +95,7 @@ package tracetx
 // 	}
 
 // 	//// fill transfer
-// 	transfers := []*entity.ChainTransfer{}
+// 	transfers := []*entity.SynctransferTransfer{}
 // 	for _, trace := range filtertrace {
 // 		tx := block.Transaction(trace.TransactionHash)
 // 		if tx == nil {
@@ -108,7 +108,7 @@ package tracetx
 // 			continue
 // 		}
 // 		/////
-// 		transfer := &entity.ChainTransfer{
+// 		transfer := &entity.SynctransferTransfer{
 // 			ChainId:   s.chainId,
 // 			Height:    trace.BlockNumber,
 // 			BlockHash: trace.BlockHash.String(),

@@ -11,7 +11,7 @@ import (
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) []*entity.ChainTransfer {
+func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) []*entity.SyncchainChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
@@ -29,10 +29,10 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *ethtype
 	tokenIds := out[0].([]*big.Int)
 	vals := out[1].([]*big.Int)
 	///
-	datas := []*entity.ChainTransfer{}
+	datas := []*entity.SyncchainChainTransfer{}
 	for j, v := range vals {
 		t := tokenIds[j]
-		datas = append(datas, &entity.ChainTransfer{
+		datas = append(datas, &entity.SyncchainChainTransfer{
 			ChainId:   chainId,
 			Height:    int64(log.BlockNumber),
 			BlockHash: log.BlockHash.String(),
@@ -57,7 +57,7 @@ func Process1155Batch(ctx context.Context, chainId int64, ts int64, log *ethtype
 	return datas
 }
 
-func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.ChainTransfer {
+func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.SyncchainChainTransfer {
 	// operator := common.BytesToAddress(log.Topics[1].Bytes())
 	fromAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[3].Bytes())
@@ -76,7 +76,7 @@ func Process1155Signal(ctx context.Context, chainId int64, ts int64, log *ethtyp
 	contractAddr := log.Address.String()
 	kind := "erc1155"
 
-	data := &entity.ChainTransfer{
+	data := &entity.SyncchainChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
 		BlockHash: log.BlockHash.String(),

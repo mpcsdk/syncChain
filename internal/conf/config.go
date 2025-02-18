@@ -11,16 +11,18 @@ import (
 type Cache struct {
 	SessionDuration int `json:"sessionDuration" v:"required|min:100"`
 }
-
-type Server struct {
-	Address       string `json:"address" v:"required"`
-	WorkId        int    `json:"workId" v:"required|min:1"`
-	Name          string `json:"name" v:"required"`
+type Syncing struct {
+	RpcUrl        string `json:"rpcUrl" v:"required"`
 	MsgSize       int64  `json:"msgSize" v:"required|min:100000"`
 	BatchSyncTask int64  `json:"batchSyncTask" v:"required|min:1"`
 	BlockInterval int64  `json:"blockInterval" v:"required|min:1"`
 	TimeOut       int    `json:"timeOut" v:"required|min:1"`
 	WaitBlock     int64  `json:"waitBlock" v:"required|min:1"`
+}
+type Server struct {
+	Address string `json:"address" v:"required"`
+	WorkId  int    `json:"workId" v:"required|min:1"`
+	Name    string `json:"name" v:"required"`
 }
 type Nrpcfg struct {
 	NatsUrl string `json:"natsUrl" v:"required"`
@@ -37,10 +39,11 @@ type SkipAddrs struct {
 	Address []common.Address `json:"contract"`
 }
 type Cfg struct {
-	Server    *Server `json:"server" v:"required"`
-	Cache     *Cache  `json:"cache" v:"required"`
-	JaegerUrl string  `json:"jaegerUrl" `
-	Nrpc      *Nrpcfg `json:"nrpc" v:"required"`
+	Server    *Server  `json:"server" v:"required"`
+	Syncing   *Syncing `json:"syncing" v:"required"`
+	Cache     *Cache   `json:"cache" v:"required"`
+	JaegerUrl string   `json:"jaegerUrl" `
+	Nrpc      *Nrpcfg  `json:"nrpc" v:"required"`
 	////
 	SyncCfgFile string `json:"syncCfgFile" v:"required"`
 }

@@ -14,7 +14,7 @@ import (
 )
 
 type ITraceSyncer interface {
-	GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.ChainTransfer, error)
+	GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error)
 }
 
 type TraceSyncer struct {

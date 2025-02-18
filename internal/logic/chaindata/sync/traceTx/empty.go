@@ -10,6 +10,6 @@ import (
 type Empty struct {
 }
 
-func (s *Empty) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.ChainTransfer, error) {
+func (s *Empty) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
 	return nil, nil
 }

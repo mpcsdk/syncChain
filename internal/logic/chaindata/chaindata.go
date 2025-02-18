@@ -2,9 +2,7 @@ package chaindata
 
 import (
 	"context"
-	"strings"
 	block "syncChain/internal/logic/chaindata/sync"
-	"syncChain/internal/logic/chaindata/util"
 	"syncChain/internal/service"
 
 	"syncChain/internal/conf"
@@ -99,30 +97,30 @@ func New() *sChainData {
 		panic("chainId")
 	}
 	////chaincfg from db
-	chainCfg, err := service.DB().RiskAdmin().GetChainCfg(ctx, chainId)
-	if err != nil {
-		panic(err)
-	}
-	rpcs := strings.Split(chainCfg.Rpc, ",")
-	if len(rpcs) == 0 {
-		panic(chainCfg)
-	}
-	cli, err := util.Dial(rpcs[0])
-	if err != nil {
-		panic(err)
-	}
-	cliChainId, err := cli.ChainID(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	if cliChainId.Int64() != chainCfg.ChainId {
-		panic("clichanId!=cfgChainId:" + rpcs[0])
-	}
+	// chainCfg, err := service.DB().RiskAdmin().GetChainCfg(ctx, chainId)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// rpcs := strings.Split(chainCfg.Rpc, ",")
+	// if len(rpcs) == 0 {
+	// 	panic(chainCfg)
+	// }
+	// cli, err := util.Dial(rpcs[0])
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// cliChainId, err := cli.ChainID(context.Background())
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// if cliChainId.Int64() != chainCfg.ChainId {
+	// 	panic("clichanId!=cfgChainId:" + rpcs[0])
+	// }
 	////
 	///filter contracts
 	// riskCtrlRule := mpcdao.NewRiskCtrlRule(nil, 0)
 	// briefs, err := riskCtrlRule.GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
-	briefs, err := service.DB().RiskAdmin().GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
+	briefs, err := service.DB().GetContractAbiBriefs(ctx, chainId)
 	if err != nil {
 		panic(err)
 	}
@@ -177,11 +175,15 @@ func New() *sChainData {
 		break
 	}
 	//////
+	state, err := service.DB().GetState(ctx, chainId)
+	if err != nil {
+		panic(err)
+	}
 	//////
 	module := block.NewEthModule(s.ctx,
-		chainCfg.ChainId,
-		chainCfg.Heigh,
-		rpcs, contracts, skipToAddrs, skipFromAddrs)
+		chainId,
+		state.CurrentBlock,
+		conf.Config.Syncing.RpcUrl, contracts, skipToAddrs, skipFromAddrs)
 	//////
 	module.Start()
 	////

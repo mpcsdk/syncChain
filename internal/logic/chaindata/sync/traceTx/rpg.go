@@ -71,7 +71,7 @@ func newRpgTracer(ctx context.Context, chainId int64) *RpgTrace {
 	}
 
 }
-func (s *RpgTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.ChainTransfer, error) {
+func (s *RpgTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
 	g.Log().Debug(ctx, "getTraceBlock_rpg:", block.Number())
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.ctxTimeOut)
@@ -95,7 +95,7 @@ func (s *RpgTrace) traceBlock_rpg(ctx context.Context, number *big.Int) ([]*Trac
 	}
 	return data.Data, err
 }
-func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *ethtypes.Block, traces []*TraceRpg) []*entity.ChainTransfer {
+func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *ethtypes.Block, traces []*TraceRpg) []*entity.SyncchainChainTransfer {
 	////
 	filtertrace := []*TraceRpg{}
 	for i, trace := range traces {
@@ -108,7 +108,7 @@ func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *ethtypes.Block, 
 	}
 
 	//// fill transfer
-	transfers := []*entity.ChainTransfer{}
+	transfers := []*entity.SyncchainChainTransfer{}
 	for _, trace := range filtertrace {
 		tx := block.Transaction(trace.ParentTxHash)
 		if tx == nil {
@@ -116,7 +116,7 @@ func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *ethtypes.Block, 
 			continue
 		}
 		/////
-		transfer := &entity.ChainTransfer{
+		transfer := &entity.SyncchainChainTransfer{
 			ChainId:   s.chainId,
 			Height:    trace.BlockHeight,
 			BlockHash: trace.BlockHash.String(),

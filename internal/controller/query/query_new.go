@@ -13,18 +13,18 @@ import (
 
 type ControllerV1 struct{
 	contracts map[string]*entity.RiskadminContractabi
-	chains map[int64]*entity.RiskadminChaincfg
+	// chains map[int64]*entity.RiskadminChaincfg
 
 }
 
 func NewV1() query.IQueryV1 {
 	s := &ControllerV1{
 		contracts: make(map[string]*entity.RiskadminContractabi),
-		chains: make(map[int64]*entity.RiskadminChaincfg),
+		// chains: make(map[int64]*entity.RiskadminChaincfg),
 	}
 	////
 	ctx := gctx.GetInitCtx()
-	contracts, err := service.DB().RiskAdmin().GetContractAbiBriefs(ctx, 0, "")
+	contracts, err := service.DB().GetContractAbiBriefs(ctx, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -32,10 +32,10 @@ func NewV1() query.IQueryV1 {
 		s.contracts[c.ContractAddress] = c
 	}
 	////
-	chains , err := service.DB().RiskAdmin().AllChainsCfg(ctx)
-	for _, c := range chains {
-		s.chains[c.ChainId] = c
-	}
+	// chains , err := service.DB().RiskAdmin().AllChainsCfg(ctx)
+	// for _, c := range chains {
+	// 	s.chains[c.ChainId] = c
+	// }
 	////
 	return s
 }

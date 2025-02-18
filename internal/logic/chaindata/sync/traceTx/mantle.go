@@ -62,7 +62,7 @@ func (s *DebugTraceCalls) Tag() string {
 	}
 	return s.tag
 }
-func (s *MantleTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.ChainTransfer, error) {
+func (s *MantleTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
 	g.Log().Debug(ctx, "getDebug_TraceBlock:", block.Number())
 
 	ctx, cancel := context.WithTimeout(ctx, s.ctxTimeOut)
@@ -123,12 +123,12 @@ func filteMantleTrace(traces []*DebugTraceResult) []*DebugTraceCalls {
 	return filtetrace
 }
 
-func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.Block, traces []*DebugTraceResult) []*entity.ChainTransfer {
+func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.Block, traces []*DebugTraceResult) []*entity.SyncchainChainTransfer {
 	////
 	filtertrace := filteMantleTrace(traces)
 
 	//// fill transfer
-	transfers := []*entity.ChainTransfer{}
+	transfers := []*entity.SyncchainChainTransfer{}
 	txs := block.Transactions()
 	for _, trace := range filtertrace {
 		tx := txs[trace.TxIdx]
@@ -137,7 +137,7 @@ func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.
 			continue
 		}
 		/////
-		transfer := &entity.ChainTransfer{
+		transfer := &entity.SyncchainChainTransfer{
 			ChainId:   s.chainId,
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().String(),

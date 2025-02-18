@@ -4,8 +4,11 @@ server:
   workId: 1
   openapiPath: "/api.json"
   swaggerPath: "/swagger"
-  batchSyncTask: 1
+
+syncing:
+  rpcUrl: "https://rpc.ankr.com/mantle_sepolia/c849e9b040b2cd358ea06aae233d55d8489f39b9be10f2923bf52a909d0241e3"
   timeOut: 10
+  batchSyncTask: 1
   waitBlock: 3
   blockInterval: 15
   msgSize: 1000000

@@ -16,7 +16,7 @@ var (
 // rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
 )
 
-func Process20(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.ChainTransfer {
+func Process20(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.SyncchainChainTransfer {
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	///
@@ -30,7 +30,7 @@ func Process20(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) 
 	contractAddr := log.Address.String()
 	kind := "erc20"
 
-	data := &entity.ChainTransfer{
+	data := &entity.SyncchainChainTransfer{
 		ChainId:   chainId,
 		Height:    int64(log.BlockNumber),
 		BlockHash: log.BlockHash.String(),

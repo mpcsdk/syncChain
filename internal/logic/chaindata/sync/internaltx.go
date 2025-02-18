@@ -1,8 +1,8 @@
 package syncBlock
 
 // // /trace_block
-// func (s *EthModule) intx(block *ethtypes.Block) ([]*entity.ChainTransfer, error) {
-// 	transfers := []*entity.ChainTransfer{}
+// func (s *EthModule) intx(block *ethtypes.Block) ([]*entity.SynctransferTransfer, error) {
+// 	transfers := []*entity.SynctransferTransfer{}
 // 	if s.chainId == 9527 || s.chainId == 2025 {
 // 		/// for rpg method
 // 		traces, err := s.getTraceBlock_rpg(block.Number().Int64(), s.rpgtracecli)

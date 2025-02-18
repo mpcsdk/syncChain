@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Transaction, index int) *entity.ChainTransfer {
+func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Transaction, index int) *entity.SyncchainChainTransfer {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return nil
@@ -63,7 +63,7 @@ func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Trans
 		}
 		from = fromAddr
 	}
-	data := &entity.ChainTransfer{
+	data := &entity.SyncchainChainTransfer{
 		ChainId:   tx.ChainId().Int64(),
 		Height:    block.Number().Int64(),
 		BlockHash: block.Hash().Hex(),
@@ -85,7 +85,7 @@ func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Trans
 	}
 	return data
 }
-func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.ChainTransfer {
+func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.SyncchainChainTransfer {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return nil
@@ -100,7 +100,7 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 	if nil != txFroms[index] {
 		fromAddr := txFroms[index].String()
 		txhash := txHashes[index].String()
-		data := &entity.ChainTransfer{
+		data := &entity.SyncchainChainTransfer{
 			ChainId:   chainId,
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().Hex(),
@@ -154,7 +154,7 @@ func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types
 	if nil != err {
 		g.Log().Errorf(ctx, "fail to calc fromAddr, txhash: %s", txHash)
 	} else {
-		data := &entity.ChainTransfer{
+		data := &entity.SyncchainChainTransfer{
 			ChainId:   tx.ChainId().Int64(),
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().Hex(),

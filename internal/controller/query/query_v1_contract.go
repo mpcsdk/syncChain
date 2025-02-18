@@ -14,7 +14,7 @@ func (c *ControllerV1) Contract(ctx context.Context, req *v1.ContractReq) (res *
 	g.Log().Debug(ctx, "Query req:", req)
 	///
 	///
-	result, err := service.DB().RiskAdmin().GetContractAbiBriefs(ctx, req.ChainId, "")
+	result, err := service.DB().GetContractAbiBriefs(ctx, req.ChainId)
 	if err != nil {
 		g.Log().Error(ctx, "Query err:", err)
 		return nil, mpccode.CodeInternalError(mpccode.TraceId(ctx))
