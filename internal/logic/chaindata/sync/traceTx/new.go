@@ -39,12 +39,12 @@ func NewTraceSyncer(ctx context.Context, chainId int64, url string, ctxTimeOut t
 
 	///
 	switch chainId {
-	case 9527, 2025:
-		return newRpgTracer(ctx, chainId)
-	case 1, 11155111, 97, 56:
-		return newEthTracer(ctx, chainId, url, ctxTimeOut)
-	case 5000, 5003:
+	// case 9527, 2025:
+	// 	return newRpgTracer(ctx, chainId)
+	case 1, 11155111, 97, 56, 5000, 5003:
 		return newMantleTracer(ctx, chainId, url, ctxTimeOut)
+	// case 5000, 5003:
+	// 	return newMantleTracer(ctx, chainId, url, ctxTimeOut)
 	default:
 		return &Empty{}
 	}

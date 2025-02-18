@@ -101,7 +101,11 @@ func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcLis
 		panic(err)
 	}
 	///
-	tracer := tracetx.NewTraceSyncer(ctx, chainId, rpcList[0], time.Duration(conf.Config.Server.SyncInterval)*time.Second*2)
+	tracer := tracetx.NewTraceSyncer(
+		ctx, chainId,
+		rpcList[0],
+		time.Duration(conf.Config.Server.TimeOut)*time.Second,
+	)
 	s := &EthModule{
 		ctx:          ctx,
 		chainId:      chainId,
@@ -136,7 +140,7 @@ func NewEthModule(ctx context.Context, chainId int64, currentBlock int64, rpcLis
 		transferCh:     make(chan []*entity.ChainTransfer, 100),
 		blockTransfers: map[int64][]*entity.ChainTransfer{},
 		///
-		blockWait: time.Duration(conf.Config.Server.SyncInterval) * time.Second,
+		blockWait: time.Duration(conf.Config.Server.BlockInterval) * time.Second,
 	}
 	// if chainId == 9527 {
 	// 	///rpgtestnet
