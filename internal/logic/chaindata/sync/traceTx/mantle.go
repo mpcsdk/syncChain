@@ -146,7 +146,7 @@ func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.
 			TxIdx:     trace.TxIdx,
 			From:      trace.From.String(),
 			To:        trace.To.String(),
-			Contract:  "",
+			Contract:  common.Address{}.String(),
 			Value:     trace.Value.ToInt().String(),
 			Gas:       trace.Gas,
 			GasPrice:  "0",

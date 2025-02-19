@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"strconv"
 	"sync"
-	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -72,7 +71,7 @@ func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Trans
 		TxIdx:     index,
 		From:      from.Hex(),
 		To:        toAddr,
-		Contract:  "",
+		Contract:  common.Address{}.String(),
 		Value:     tx.Value().String(),
 		Gas:       gas,
 		GasPrice:  gasPrice,
@@ -85,98 +84,99 @@ func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Trans
 	}
 	return data
 }
-func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.SyncchainChainTransfer {
-	value := tx.Value()
-	if tx == nil || tx.To() == nil || 0 == value.Sign() {
-		return nil
-	}
-	// if len(tx.Data()) > 0 {
-	// 	return nil
-	// }
-	toAddr := tx.To().String()
 
-	gas := strconv.FormatUint(tx.Gas(), 10)
-	gasPrice := tx.GasPrice().String()
-	if nil != txFroms[index] {
-		fromAddr := txFroms[index].String()
-		txhash := txHashes[index].String()
-		data := &entity.SyncchainChainTransfer{
-			ChainId:   chainId,
-			Height:    block.Number().Int64(),
-			BlockHash: block.Hash().Hex(),
-			Ts:        int64(block.Time()),
-			TxHash:    txhash,
-			TxIdx:     index,
-			From:      fromAddr,
-			To:        toAddr,
-			Contract:  "",
-			Value:     tx.Value().String(),
-			Gas:       gas,
-			GasPrice:  gasPrice,
-			LogIdx:    -1,
-			Nonce:     int64(tx.Nonce()),
-			Kind:      "external",
-			Status:    0,
-			Removed:   false,
-			TraceTag:  "",
-		}
-		return data
-	}
+// func ProcessTx(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, txFroms []*common.Address, txHashes []*common.Hash, index int) *entity.SyncchainChainTransfer {
+// 	value := tx.Value()
+// 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
+// 		return nil
+// 	}
+// 	// if len(tx.Data()) > 0 {
+// 	// 	return nil
+// 	// }
+// 	toAddr := tx.To().String()
 
-	var hash common.Hash
-	v, r, S := tx.RawSignatureValues()
-	V := v
-	if tx.Protected() {
-		V = new(big.Int).Sub(v, new(big.Int).Mul(tx.ChainId(), big.NewInt(2)))
-		V.Sub(V, big8)
+// 	gas := strconv.FormatUint(tx.Gas(), 10)
+// 	gasPrice := tx.GasPrice().String()
+// 	if nil != txFroms[index] {
+// 		fromAddr := txFroms[index].String()
+// 		txhash := txHashes[index].String()
+// 		data := &entity.SyncchainChainTransfer{
+// 			ChainId:   chainId,
+// 			Height:    block.Number().Int64(),
+// 			BlockHash: block.Hash().Hex(),
+// 			Ts:        int64(block.Time()),
+// 			TxHash:    txhash,
+// 			TxIdx:     index,
+// 			From:      fromAddr,
+// 			To:        toAddr,
+// 			Contract:  common.Address{}.String(),
+// 			Value:     tx.Value().String(),
+// 			Gas:       gas,
+// 			GasPrice:  gasPrice,
+// 			LogIdx:    -1,
+// 			Nonce:     int64(tx.Nonce()),
+// 			Kind:      "external",
+// 			Status:    0,
+// 			Removed:   false,
+// 			TraceTag:  "",
+// 		}
+// 		return data
+// 	}
 
-		hash = rlpHash([]interface{}{
-			tx.Nonce(),
-			tx.GasPrice(),
-			tx.Gas(),
-			tx.To(),
-			tx.Value(),
-			tx.Data(),
-			tx.ChainId(), uint(0), uint(0),
-		})
-	} else {
-		hash = rlpHash([]interface{}{
-			tx.Nonce(),
-			tx.GasPrice(),
-			tx.Gas(),
-			tx.To(),
-			tx.Value(),
-			tx.Data(),
-		})
-	}
-	fromAddr, err := util.RecoverPlain(hash, r, S, V)
-	txHash := tx.Hash().String()
-	if nil != err {
-		g.Log().Errorf(ctx, "fail to calc fromAddr, txhash: %s", txHash)
-	} else {
-		data := &entity.SyncchainChainTransfer{
-			ChainId:   tx.ChainId().Int64(),
-			Height:    block.Number().Int64(),
-			BlockHash: block.Hash().Hex(),
-			Ts:        int64(block.Time()),
-			TxHash:    txHash,
-			TxIdx:     index,
-			From:      fromAddr.String(),
-			To:        toAddr,
-			Contract:  "",
-			Value:     tx.Value().String(),
-			Gas:       gas,
-			GasPrice:  gasPrice,
-			LogIdx:    -1,
-			Nonce:     int64(tx.Nonce()),
-			Kind:      "external",
-			Status:    0,
-			Removed:   false,
-		}
-		return data
-	}
-	return nil
-}
+// 	var hash common.Hash
+// 	v, r, S := tx.RawSignatureValues()
+// 	V := v
+// 	if tx.Protected() {
+// 		V = new(big.Int).Sub(v, new(big.Int).Mul(tx.ChainId(), big.NewInt(2)))
+// 		V.Sub(V, big8)
+
+// 		hash = rlpHash([]interface{}{
+// 			tx.Nonce(),
+// 			tx.GasPrice(),
+// 			tx.Gas(),
+// 			tx.To(),
+// 			tx.Value(),
+// 			tx.Data(),
+// 			tx.ChainId(), uint(0), uint(0),
+// 		})
+// 	} else {
+// 		hash = rlpHash([]interface{}{
+// 			tx.Nonce(),
+// 			tx.GasPrice(),
+// 			tx.Gas(),
+// 			tx.To(),
+// 			tx.Value(),
+// 			tx.Data(),
+// 		})
+// 	}
+// 	fromAddr, err := util.RecoverPlain(hash, r, S, V)
+// 	txHash := tx.Hash().String()
+// 	if nil != err {
+// 		g.Log().Errorf(ctx, "fail to calc fromAddr, txhash: %s", txHash)
+// 	} else {
+// 		data := &entity.SyncchainChainTransfer{
+// 			ChainId:   tx.ChainId().Int64(),
+// 			Height:    block.Number().Int64(),
+// 			BlockHash: block.Hash().Hex(),
+// 			Ts:        int64(block.Time()),
+// 			TxHash:    txHash,
+// 			TxIdx:     index,
+// 			From:      fromAddr.String(),
+// 			To:        toAddr,
+// 			Contract:  common.Address{}.String(),
+// 			Value:     tx.Value().String(),
+// 			Gas:       gas,
+// 			GasPrice:  gasPrice,
+// 			LogIdx:    -1,
+// 			Nonce:     int64(tx.Nonce()),
+// 			Kind:      "external",
+// 			Status:    0,
+// 			Removed:   false,
+// 		}
+// 		return data
+// 	}
+// 	return nil
+// }
 
 var (
 	big8 = big.NewInt(8)
