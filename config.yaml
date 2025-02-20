@@ -1,0 +1,43 @@
+server:
+  name: "sync_chain"
+  address: ":8010"
+  workId: 1
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+syncing:
+  rpcUrl: "https://rpc.ankr.com/mantle_sepolia"
+  timeOut: 10
+  batchSyncTask: 1
+  waitBlock: 3
+  blockInterval: 15
+  msgSize: 1000000
+
+logger:
+  level: "info"
+  stdout: true
+  rotateExpire: "1d"
+  path: "./"
+
+database:
+  sync_chain:
+    - link: "pgsql:postgres:123456@tcp(localhost:5432)/sync_chain"
+  riskctrl:
+    - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
+
+cache:
+  sessionDuration: 2000
+
+nrpc:
+  natsUrl: "127.0.0.1:4222"
+
+syncCfgFile: "./syncCfg.yaml"
+
+# redis
+redis:
+  default:
+    address: 127.0.0.1:10060
+    db: 1
+  cache:
+    address: 127.0.0.1:10060
+    db: 2
