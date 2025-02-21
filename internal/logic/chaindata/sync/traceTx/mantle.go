@@ -65,7 +65,7 @@ func (s *DebugTraceCalls) Tag() string {
 func (s *MantleTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
 	g.Log().Debug(ctx, "getDebug_TraceBlock:", block.Number())
 
-	ctx, cancel := context.WithTimeout(ctx, s.ctxTimeOut)
+	ctx, cancel := context.WithTimeout(ctx, s.ctxTimeOut*5)
 	defer cancel()
 	//
 	traces, err := s.debug_TraceBlock(ctx, block.Number())
