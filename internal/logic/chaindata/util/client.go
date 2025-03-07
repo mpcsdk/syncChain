@@ -133,13 +133,15 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 	if head.UncleHash == types.EmptyUncleHash && len(body.UncleHashes) > 0 {
 		return nil, nil, nil, nil, errors.New("server returned non-empty uncle list but block header indicates no uncles")
 	}
-	if head.UncleHash != types.EmptyUncleHash && len(body.UncleHashes) == 0 {
+	// tron return unclehash  0x000..00
+	if head.UncleHash != types.EmptyUncleHash && head.UncleHash.Big().Sign() != 0 && len(body.UncleHashes) == 0 {
 		return nil, nil, nil, nil, errors.New("server returned empty uncle list but block header indicates uncles")
 	}
 	if head.TransactionsRoot == types.EmptyTxsHash && len(body.Transactions) > 0 {
 		return nil, nil, nil, nil, errors.New("server returned non-empty transaction list but block header indicates no transactions")
 	}
-	if head.TransactionsRoot != types.EmptyTxsHash && len(body.Transactions) == 0 {
+	/// tron
+	if head.TransactionsRoot != types.EmptyTxsHash && head.TransactionsRoot.Big().Sign() != 0 && len(body.Transactions) == 0 {
 		return nil, nil, nil, nil, errors.New("server returned empty transaction list but block header indicates transactions")
 	}
 	// Load uncles because they are not included in the block response.
@@ -178,9 +180,10 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		txs[i] = tx.tx
 		txFroms[i] = tx.From
 		txHashes[i] = tx.Hash
+		tx.tx.SetHash(*tx.Hash)
 	}
 
-	block := types.NewBlockWithHeader(head).WithBody(txs, uncles).WithWithdrawals(body.Withdrawals)
+	block := types.NewBlockWithHeader(head).WithBody(txs, uncles).WithWithdrawals(body.Withdrawals).WithHash(body.Hash)
 	return block, &body.Hash, txFroms, txHashes, nil
 }
 

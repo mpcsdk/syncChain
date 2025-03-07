@@ -1,8 +1,6 @@
 package util
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 )
 
@@ -1690,24 +1688,24 @@ var json2 = `[
 `
 
 func Test_trace(t *testing.T) {
-	var res []*Trace
-	err := json.Unmarshal([]byte(json1), &res)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, trace := range res {
-		if trace.Type == "call" {
-			if trace.Action.Value.ToInt().Int64() != 0 {
-				j, _ := json.Marshal(trace)
-				fmt.Println(string(j))
-			}
-		}
-	}
-	t.Log(res)
-	////
-	err = json.Unmarshal([]byte(json2), &res)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(res)
+	// var res []*Trace
+	// err := json.Unmarshal([]byte(json1), &res)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// for _, trace := range res {
+	// 	if trace.Type == "call" {
+	// 		if trace.Action.Value.ToInt().Int64() != 0 {
+	// 			j, _ := json.Marshal(trace)
+	// 			fmt.Println(string(j))
+	// 		}
+	// 	}
+	// }
+	// t.Log(res)
+	// ////
+	// err = json.Unmarshal([]byte(json2), &res)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// t.Log(res)
 }

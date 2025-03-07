@@ -18,8 +18,21 @@ type (
 		QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.QueryData) ([]*entity.SyncchainChainTransfer, error)
 		InsertTransfer(ctx context.Context, chainId int64, data *entity.SyncchainChainTransfer) error
 		DelChainBlock(ctx context.Context, chainId int64, block int64) error
+		UpTransaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
 		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
-		InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
+		//	func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
+		//		// err := s.chainTransfer.InsertBatch(ctx, datas)
+		//		chaindb := s.chainTransfer[chainId]
+		//		if chaindb == nil {
+		//			return errors.New("no chaindb")
+		//		}
+		//		err := chaindb.Insert_Transaction(ctx, datas)
+		//		if err != nil {
+		//			return err
+		//		}
+		//		///
+		//		return nil
+		//	}
 		UpdateState(ctx context.Context, chainId int64, currentBlock int64) error
 		GetState(ctx context.Context, chainId int64) (*entity.SyncchainState, error)
 		GetContractAbiBriefs(ctx context.Context, chainId int64) ([]*entity.RiskadminContractabi, error)

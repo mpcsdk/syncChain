@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -32,22 +31,23 @@ import (
 type txJSON struct {
 	Type hexutil.Uint64 `json:"type"`
 
-	ChainID              *hexutil.Big    `json:"chainId,omitempty"`
-	Nonce                *string         `json:"nonce"`
-	To                   *common.Address `json:"to"`
-	Gas                  *hexutil.Uint64 `json:"gas"`
-	GasPrice             *hexutil.Big    `json:"gasPrice"`
-	MaxPriorityFeePerGas *hexutil.Big    `json:"maxPriorityFeePerGas"`
-	MaxFeePerGas         *hexutil.Big    `json:"maxFeePerGas"`
-	MaxFeePerBlobGas     *hexutil.Big    `json:"maxFeePerBlobGas,omitempty"`
-	Value                *hexutil.Big    `json:"value"`
-	Input                *hexutil.Bytes  `json:"input"`
-	AccessList           *AccessList     `json:"accessList,omitempty"`
-	BlobVersionedHashes  []common.Hash   `json:"blobVersionedHashes,omitempty"`
-	V                    *hexutil.Big    `json:"v"`
-	R                    *hexutil.Big    `json:"r"`
-	S                    *hexutil.Big    `json:"s"`
-	YParity              *hexutil.Uint64 `json:"yParity,omitempty"`
+	ChainID              *Big                   `json:"chainId,omitempty"`
+	Nonce                *Uint64                `json:"nonce"`
+	To                   *common.Address        `json:"to"`
+	Gas                  *Uint64                `json:"gas"`
+	GasPrice             *Big                   `json:"gasPrice"`
+	MaxPriorityFeePerGas *Big                   `json:"maxPriorityFeePerGas"`
+	MaxFeePerGas         *Big                   `json:"maxFeePerGas"`
+	MaxFeePerBlobGas     *Big                   `json:"maxFeePerBlobGas,omitempty"`
+	Value                *Big                   `json:"value"`
+	Input                *Bytes                 `json:"input"`
+	AccessList           *AccessList            `json:"accessList,omitempty"`
+	BlobVersionedHashes  []common.Hash          `json:"blobVersionedHashes,omitempty"`
+	AuthorizationList    []SetCodeAuthorization `json:"authorizationList,omitempty"`
+	V                    *Big                   `json:"v"`
+	R                    *Big                   `json:"r"`
+	S                    *Big                   `json:"s"`
+	YParity              *Uint64                `json:"yParity,omitempty"`
 
 	// Blob transaction sidecar encoding:
 	Blobs       []kzg4844.Blob       `json:"blobs,omitempty"`
@@ -88,83 +88,88 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	// Other fields are set conditionally depending on tx type.
 	switch itx := tx.inner.(type) {
 	case *LegacyTx:
-		nonce := big.NewInt(int64(itx.Nonce))
-		noncestr := nonce.String()
-		enc.Nonce = &noncestr
+		enc.Nonce = (*Uint64)(&itx.Nonce)
 		enc.To = tx.To()
-		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
-		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
-		enc.Value = (*hexutil.Big)(itx.Value)
-		enc.Input = (*hexutil.Bytes)(&itx.Data)
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.Gas = (*Uint64)(&itx.Gas)
+		enc.GasPrice = (*Big)(itx.GasPrice)
+		enc.Value = (*Big)(itx.Value)
+		enc.Input = (*Bytes)(&itx.Data)
+		enc.V = (*Big)(itx.V)
+		enc.R = (*Big)(itx.R)
+		enc.S = (*Big)(itx.S)
 		if tx.Protected() {
-			enc.ChainID = (*hexutil.Big)(tx.ChainId())
+			enc.ChainID = (*Big)(tx.ChainId())
 		}
 
 	case *AccessListTx:
-		enc.ChainID = (*hexutil.Big)(itx.ChainID)
-		nonce := big.NewInt(int64(itx.Nonce))
-		noncestr := nonce.String()
-		enc.Nonce = &noncestr
-		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		enc.ChainID = (*Big)(itx.ChainID)
+		enc.Nonce = (*Uint64)(&itx.Nonce)
 		enc.To = tx.To()
-		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
-		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
-		enc.Value = (*hexutil.Big)(itx.Value)
-		enc.Input = (*hexutil.Bytes)(&itx.Data)
+		enc.Gas = (*Uint64)(&itx.Gas)
+		enc.GasPrice = (*Big)(itx.GasPrice)
+		enc.Value = (*Big)(itx.Value)
+		enc.Input = (*Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.V = (*Big)(itx.V)
+		enc.R = (*Big)(itx.R)
+		enc.S = (*Big)(itx.S)
 		yparity := itx.V.Uint64()
-		enc.YParity = (*hexutil.Uint64)(&yparity)
+		enc.YParity = (*Uint64)(&yparity)
 
 	case *DynamicFeeTx:
-		enc.ChainID = (*hexutil.Big)(itx.ChainID)
-		nonce := big.NewInt(int64(itx.Nonce))
-		noncestr := nonce.String()
-		enc.Nonce = &noncestr
-		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
+		enc.ChainID = (*Big)(itx.ChainID)
+		enc.Nonce = (*Uint64)(&itx.Nonce)
 		enc.To = tx.To()
-		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
-		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap)
-		enc.MaxPriorityFeePerGas = (*hexutil.Big)(itx.GasTipCap)
-		enc.Value = (*hexutil.Big)(itx.Value)
-		enc.Input = (*hexutil.Bytes)(&itx.Data)
+		enc.Gas = (*Uint64)(&itx.Gas)
+		enc.MaxFeePerGas = (*Big)(itx.GasFeeCap)
+		enc.MaxPriorityFeePerGas = (*Big)(itx.GasTipCap)
+		enc.Value = (*Big)(itx.Value)
+		enc.Input = (*Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.V = (*Big)(itx.V)
+		enc.R = (*Big)(itx.R)
+		enc.S = (*Big)(itx.S)
 		yparity := itx.V.Uint64()
-		enc.YParity = (*hexutil.Uint64)(&yparity)
+		enc.YParity = (*Uint64)(&yparity)
 
 	case *BlobTx:
-		enc.ChainID = (*hexutil.Big)(itx.ChainID.ToBig())
-		// enc.Nonce = (*hexutil.Uint64)(&itx.Nonce)
-		nonce := big.NewInt(int64(itx.Nonce))
-		noncestr := nonce.String()
-		enc.Nonce = &noncestr
-		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
-		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap.ToBig())
-		enc.MaxPriorityFeePerGas = (*hexutil.Big)(itx.GasTipCap.ToBig())
-		enc.MaxFeePerBlobGas = (*hexutil.Big)(itx.BlobFeeCap.ToBig())
-		enc.Value = (*hexutil.Big)(itx.Value.ToBig())
-		enc.Input = (*hexutil.Bytes)(&itx.Data)
+		enc.ChainID = (*Big)(itx.ChainID.ToBig())
+		enc.Nonce = (*Uint64)(&itx.Nonce)
+		enc.Gas = (*Uint64)(&itx.Gas)
+		enc.MaxFeePerGas = (*Big)(itx.GasFeeCap.ToBig())
+		enc.MaxPriorityFeePerGas = (*Big)(itx.GasTipCap.ToBig())
+		enc.MaxFeePerBlobGas = (*Big)(itx.BlobFeeCap.ToBig())
+		enc.Value = (*Big)(itx.Value.ToBig())
+		enc.Input = (*Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
 		enc.BlobVersionedHashes = itx.BlobHashes
 		enc.To = tx.To()
-		enc.V = (*hexutil.Big)(itx.V.ToBig())
-		enc.R = (*hexutil.Big)(itx.R.ToBig())
-		enc.S = (*hexutil.Big)(itx.S.ToBig())
+		enc.V = (*Big)(itx.V.ToBig())
+		enc.R = (*Big)(itx.R.ToBig())
+		enc.S = (*Big)(itx.S.ToBig())
 		yparity := itx.V.Uint64()
-		enc.YParity = (*hexutil.Uint64)(&yparity)
+		enc.YParity = (*Uint64)(&yparity)
 		if sidecar := itx.Sidecar; sidecar != nil {
 			enc.Blobs = itx.Sidecar.Blobs
 			enc.Commitments = itx.Sidecar.Commitments
 			enc.Proofs = itx.Sidecar.Proofs
 		}
+	case *SetCodeTx:
+		enc.ChainID = (*Big)(itx.ChainID.ToBig())
+		enc.Nonce = (*Uint64)(&itx.Nonce)
+		enc.To = tx.To()
+		enc.Gas = (*Uint64)(&itx.Gas)
+		enc.MaxFeePerGas = (*Big)(itx.GasFeeCap.ToBig())
+		enc.MaxPriorityFeePerGas = (*Big)(itx.GasTipCap.ToBig())
+		enc.Value = (*Big)(itx.Value.ToBig())
+		enc.Input = (*Bytes)(&itx.Data)
+		enc.AccessList = &itx.AccessList
+		enc.AuthorizationList = itx.AuthList
+		enc.V = (*Big)(itx.V.ToBig())
+		enc.R = (*Big)(itx.R.ToBig())
+		enc.S = (*Big)(itx.S.ToBig())
+		yparity := itx.V.Uint64()
+		enc.YParity = (*Uint64)(&yparity)
 	}
 	return json.Marshal(&enc)
 }
@@ -180,27 +185,13 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	// Decode / verify fields according to transaction type.
 	var inner TxData
 	switch dec.Type {
-	case LegacyTxType, 126:
+	case LegacyTxType:
 		var itx LegacyTx
 		inner = &itx
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		if dec.Nonce == nil {
-			itx.Nonce = 0
-		} else {
-			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
-			noncestr = strings.Trim(noncestr, "0")
-			if noncestr == "" {
-				itx.Nonce = 0
-			} else {
-				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
-				itx.Nonce = nonce.Uint64()
-			}
-
-			// uint64(*dec.Nonce)
-		}
-
+		itx.Nonce = uint64(*dec.Nonce)
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -252,20 +243,7 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		// itx.Nonce = uint64(*dec.Nonce)
-		if dec.Nonce == nil {
-			itx.Nonce = 0
-		} else {
-			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
-			noncestr = strings.Trim(noncestr, "0")
-			if noncestr == "" {
-				itx.Nonce = 0
-			} else {
-				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
-				itx.Nonce = nonce.Uint64()
-			}
-			// uint64(*dec.Nonce)
-		}
+		itx.Nonce = uint64(*dec.Nonce)
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -320,20 +298,7 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		// itx.Nonce = uint64(*dec.Nonce)
-		if dec.Nonce == nil {
-			itx.Nonce = 0
-		} else {
-			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
-			noncestr = strings.Trim(noncestr, "0")
-			if noncestr == "" {
-				itx.Nonce = 0
-			} else {
-				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
-				itx.Nonce = nonce.Uint64()
-			}
-			// uint64(*dec.Nonce)
-		}
+		itx.Nonce = uint64(*dec.Nonce)
 		if dec.To != nil {
 			itx.To = dec.To
 		}
@@ -388,24 +353,15 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.ChainID == nil {
 			return errors.New("missing required field 'chainId' in transaction")
 		}
-		itx.ChainID = uint256.MustFromBig((*big.Int)(dec.ChainID))
+		var overflow bool
+		itx.ChainID, overflow = uint256.FromBig(dec.ChainID.ToInt())
+		if overflow {
+			return errors.New("'chainId' value overflows uint256")
+		}
 		if dec.Nonce == nil {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
-		// itx.Nonce = uint64(*dec.Nonce)
-		if dec.Nonce == nil {
-			itx.Nonce = 0
-		} else {
-			noncestr := strings.TrimPrefix(*dec.Nonce, "0x")
-			noncestr = strings.Trim(noncestr, "0")
-			if noncestr == "" {
-				itx.Nonce = 0
-			} else {
-				nonce, _ := big.NewInt(0).SetString(noncestr, 16)
-				itx.Nonce = nonce.Uint64()
-			}
-			// uint64(*dec.Nonce)
-		}
+		itx.Nonce = uint64(*dec.Nonce)
 		if dec.To == nil {
 			return errors.New("missing required field 'to' in transaction")
 		}
@@ -443,7 +399,6 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		itx.BlobHashes = dec.BlobVersionedHashes
 
 		// signature R
-		var overflow bool
 		if dec.R == nil {
 			return errors.New("missing required field 'r' in transaction")
 		}
@@ -473,11 +428,91 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 				return err
 			}
 		}
+
+	case SetCodeTxType:
+		var itx SetCodeTx
+		inner = &itx
+		if dec.ChainID == nil {
+			return errors.New("missing required field 'chainId' in transaction")
+		}
+		var overflow bool
+		itx.ChainID, overflow = uint256.FromBig(dec.ChainID.ToInt())
+		if overflow {
+			return errors.New("'chainId' value overflows uint256")
+		}
+		if dec.Nonce == nil {
+			return errors.New("missing required field 'nonce' in transaction")
+		}
+		itx.Nonce = uint64(*dec.Nonce)
+		if dec.To == nil {
+			return errors.New("missing required field 'to' in transaction")
+		}
+		itx.To = *dec.To
+		if dec.Gas == nil {
+			return errors.New("missing required field 'gas' for txdata")
+		}
+		itx.Gas = uint64(*dec.Gas)
+		if dec.MaxPriorityFeePerGas == nil {
+			return errors.New("missing required field 'maxPriorityFeePerGas' for txdata")
+		}
+		itx.GasTipCap = uint256.MustFromBig((*big.Int)(dec.MaxPriorityFeePerGas))
+		if dec.MaxFeePerGas == nil {
+			return errors.New("missing required field 'maxFeePerGas' for txdata")
+		}
+		itx.GasFeeCap = uint256.MustFromBig((*big.Int)(dec.MaxFeePerGas))
+		if dec.Value == nil {
+			return errors.New("missing required field 'value' in transaction")
+		}
+		itx.Value = uint256.MustFromBig((*big.Int)(dec.Value))
+		if dec.Input == nil {
+			return errors.New("missing required field 'input' in transaction")
+		}
+		itx.Data = *dec.Input
+		if dec.AccessList != nil {
+			itx.AccessList = *dec.AccessList
+		}
+		if dec.AuthorizationList == nil {
+			return errors.New("missing required field 'authorizationList' in transaction")
+		}
+		itx.AuthList = dec.AuthorizationList
+
+		// signature R
+		if dec.R == nil {
+			return errors.New("missing required field 'r' in transaction")
+		}
+		itx.R, overflow = uint256.FromBig((*big.Int)(dec.R))
+		if overflow {
+			return errors.New("'r' value overflows uint256")
+		}
+		// signature S
+		if dec.S == nil {
+			return errors.New("missing required field 's' in transaction")
+		}
+		itx.S, overflow = uint256.FromBig((*big.Int)(dec.S))
+		if overflow {
+			return errors.New("'s' value overflows uint256")
+		}
+		// signature V
+		vbig, err := dec.yParityValue()
+		if err != nil {
+			return err
+		}
+		itx.V, overflow = uint256.FromBig(vbig)
+		if overflow {
+			return errors.New("'v' value overflows uint256")
+		}
+		if itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0 {
+			if err := sanityCheckSignature(vbig, itx.R.ToBig(), itx.S.ToBig(), false); err != nil {
+				return err
+			}
+		}
+
+	default:
+		return ErrTxTypeNotSupported
 	}
 
 	// Now set the inner transaction.
 	tx.setDecoded(inner, 0)
 
-	// TODO: check hash here?
 	return nil
 }

@@ -12,6 +12,8 @@ type (
 		//		// s.chainclient.Close()
 		//	}
 		ClientState() map[string]interface{}
+		Stop()
+		IsRunning() bool
 	}
 )
 

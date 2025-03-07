@@ -5,8 +5,9 @@ import (
 	"math/big"
 	"syncChain/internal/logic/chaindata/util"
 
+	"syncChain/internal/logic/chaindata/types"
+
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
@@ -16,7 +17,7 @@ var (
 // rpgAddr     = common.HexToAddress("0x71d9CFd1b7AdB1E8eb4c193CE6FFbe19B4aeE0dB")
 )
 
-func Process20(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.SyncchainChainTransfer {
+func Process20(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.SyncchainChainTransfer {
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())
 	///

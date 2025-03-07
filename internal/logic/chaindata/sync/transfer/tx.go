@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strconv"
 	"sync"
+	"syncChain/internal/logic/chaindata/types"
 	"syncChain/internal/logic/chaindata/util"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/gogf/gf/v2/frame/g"
@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Transaction, index int) *entity.SyncchainChainTransfer {
+func ProcessBlock(ctx context.Context, chainId int64, block *types.Block, tx *types.Transaction, index int) *entity.SyncchainChainTransfer {
 	value := tx.Value()
 	if tx == nil || tx.To() == nil || 0 == value.Sign() {
 		return nil
@@ -28,42 +28,20 @@ func ProcessBlock(ctx context.Context, block *ethtypes.Block, tx *ethtypes.Trans
 
 	gas := strconv.FormatUint(tx.Gas(), 10)
 	gasPrice := tx.GasPrice().String()
-	from, err := tx.Sender()
-	if err != nil {
-		var hash common.Hash
+	// from, err := tx.Sender()
+	from := tx.Sender()
+	if from.Big().Sign() == 0 {
 		v, r, s := tx.RawSignatureValues()
-		V := v
-		if tx.Protected() {
-			V = new(big.Int).Sub(v, new(big.Int).Mul(tx.ChainId(), big.NewInt(2)))
-			V.Sub(V, big8)
 
-			hash = rlpHash([]interface{}{
-				tx.Nonce(),
-				tx.GasPrice(),
-				tx.Gas(),
-				tx.To(),
-				tx.Value(),
-				tx.Data(),
-				tx.ChainId(), uint(0), uint(0),
-			})
-		} else {
-			hash = rlpHash([]interface{}{
-				tx.Nonce(),
-				tx.GasPrice(),
-				tx.Gas(),
-				tx.To(),
-				tx.Value(),
-				tx.Data(),
-			})
-		}
-		fromAddr, err := util.RecoverPlain(hash, r, s, V)
+		fromAddr, err := util.RecoverPlain(tx.Hash(), r, s, v)
 		if nil != err {
 			g.Log().Error(ctx, "fail to calc fromAddr, err:", err)
 		}
 		from = fromAddr
 	}
+	////
 	data := &entity.SyncchainChainTransfer{
-		ChainId:   tx.ChainId().Int64(),
+		ChainId:   chainId,
 		Height:    block.Number().Int64(),
 		BlockHash: block.Hash().Hex(),
 		Ts:        int64(block.Time()),

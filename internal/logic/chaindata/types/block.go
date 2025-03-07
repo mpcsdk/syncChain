@@ -467,6 +467,10 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 	}
 	return block
 }
+func (b *Block) WithHash(hash common.Hash) *Block {
+	b.hash.Store(hash)
+	return b
+}
 
 // WithWithdrawals returns a copy of the block containing the given withdrawals.
 func (b *Block) WithWithdrawals(withdrawals []*Withdrawal) *Block {

@@ -2,13 +2,13 @@ package transfer
 
 import (
 	"context"
+	"syncChain/internal/logic/chaindata/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
-func Process721(ctx context.Context, chainId int64, ts int64, log *ethtypes.Log) *entity.SyncchainChainTransfer {
+func Process721(ctx context.Context, chainId int64, ts int64, log *types.Log) *entity.SyncchainChainTransfer {
 
 	fromAddr := common.BytesToAddress(log.Topics[1].Bytes())
 	toAddr := common.BytesToAddress(log.Topics[2].Bytes())

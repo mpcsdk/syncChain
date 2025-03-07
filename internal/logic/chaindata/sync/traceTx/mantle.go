@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/tracers"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
@@ -22,7 +22,7 @@ type MantleTrace struct {
 }
 
 func newMantleTracer(ctx context.Context, chainId int64, url string, ctxTimeOut time.Duration) *MantleTrace {
-	cli, err := ethclient.Dial(url)
+	cli, err := util.Dial(url)
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +37,7 @@ func newMantleTracer(ctx context.Context, chainId int64, url string, ctxTimeOut 
 }
 
 type DebugTraceResult struct {
+	TxHash common.Hash      `json:"txHash"`
 	Result *DebugTraceCalls `json:"result"`
 }
 type DebugTraceCalls struct {
@@ -62,7 +63,7 @@ func (s *DebugTraceCalls) Tag() string {
 	}
 	return s.tag
 }
-func (s *MantleTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
+func (s *MantleTrace) GetTraceTransfer(ctx context.Context, block *types.Block) ([]*entity.SyncchainChainTransfer, error) {
 	g.Log().Debug(ctx, "getDebug_TraceBlock:", block.Number())
 
 	ctx, cancel := context.WithTimeout(ctx, s.ctxTimeOut*5)
@@ -91,20 +92,20 @@ func (s *MantleTrace) debug_TraceBlock(ctx context.Context, number *big.Int) ([]
 	}
 	return data, err
 }
-func filteCalls(txIdx int, calls []*DebugTraceCalls) []*DebugTraceCalls {
+func filteCalls(calls []*DebugTraceCalls) []*DebugTraceCalls {
 	filtecalls := []*DebugTraceCalls{}
 	for i, call := range calls {
 		if len(call.Calls) > 0 {
-			subfiltecalls := filteCalls(txIdx, call.Calls)
+			subfiltecalls := filteCalls(call.Calls)
 			if len(subfiltecalls) > 0 {
 				for _, subcall := range subfiltecalls {
 					subcall.TraceAddress = append(subcall.TraceAddress, i)
+					subcall.TxHash = call.TxHash
 				}
 				filtecalls = append(filtecalls, subfiltecalls...)
 			}
 		}
 		if call.Type == "CALL" && call.Value.String() != "0x0" {
-			call.TxIdx = txIdx
 			call.TraceAddress = append(call.TraceAddress, i)
 			filtecalls = append(filtecalls, call)
 		}
@@ -112,37 +113,50 @@ func filteCalls(txIdx int, calls []*DebugTraceCalls) []*DebugTraceCalls {
 	return filtecalls
 }
 
-func filteMantleTrace(traces []*DebugTraceResult) []*DebugTraceCalls {
+func filteMantleTrace(traces []*DebugTraceResult, txs []*types.Transaction) []*DebugTraceCalls {
 	filtetrace := []*DebugTraceCalls{}
-	for i, trace := range traces {
+	for _, trace := range traces {
 		/////for subcall
-		calls := filteCalls(i, trace.Result.Calls)
+		calls := filteCalls(trace.Result.Calls)
+		pos := findTransactionPos(trace.TxHash, txs)
+		if pos == -1 {
+			g.Log().Fatal(context.Background(), "trace not find tx is nil:", trace)
+			continue
+		}
+		for _, call := range calls {
+			call.TxHash = trace.TxHash
+			call.TxIdx = pos
+		}
+		/////
 		///
 		filtetrace = append(filtetrace, calls...)
 	}
 	return filtetrace
 }
+func findTransactionPos(hash common.Hash, txs []*types.Transaction) int {
+	for i, tx := range txs {
+		if tx.Hash().String() == hash.String() {
+			return i
+		}
+	}
+	return -1
+}
 
-func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.Block, traces []*DebugTraceResult) []*entity.SyncchainChainTransfer {
+func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *types.Block, traces []*DebugTraceResult) []*entity.SyncchainChainTransfer {
 	////
-	filtertrace := filteMantleTrace(traces)
+	txs := block.Transactions()
+	filtertrace := filteMantleTrace(traces, txs)
 
 	//// fill transfer
 	transfers := []*entity.SyncchainChainTransfer{}
-	txs := block.Transactions()
 	for _, trace := range filtertrace {
 		tx := txs[trace.TxIdx]
-		if tx == nil {
-			g.Log().Fatal(ctx, "tx is nil:", "blockNumber:", block.Number())
-			continue
-		}
-		/////
 		transfer := &entity.SyncchainChainTransfer{
 			ChainId:   s.chainId,
 			Height:    block.Number().Int64(),
 			BlockHash: block.Hash().String(),
 			Ts:        int64(block.Time()),
-			TxHash:    tx.Hash().String(),
+			TxHash:    trace.TxHash.String(),
 			TxIdx:     trace.TxIdx,
 			From:      trace.From.String(),
 			To:        trace.To.String(),
@@ -156,6 +170,10 @@ func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *ethtypes.
 			Status:    0,
 			Removed:   false,
 			TraceTag:  trace.Tag(),
+		}
+		if len(transfer.TraceTag) > 20 {
+			g.Log().Debug(ctx, "toolong trace:", transfer)
+			continue
 		}
 		transfers = append(transfers, transfer)
 	}

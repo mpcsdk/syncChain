@@ -96,30 +96,7 @@ func New() *sChainData {
 	if chainId == 0 {
 		panic("chainId")
 	}
-	////chaincfg from db
-	// chainCfg, err := service.DB().RiskAdmin().GetChainCfg(ctx, chainId)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// rpcs := strings.Split(chainCfg.Rpc, ",")
-	// if len(rpcs) == 0 {
-	// 	panic(chainCfg)
-	// }
-	// cli, err := util.Dial(rpcs[0])
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// cliChainId, err := cli.ChainID(context.Background())
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// if cliChainId.Int64() != chainCfg.ChainId {
-	// 	panic("clichanId!=cfgChainId:" + rpcs[0])
-	// }
-	////
-	///filter contracts
-	// riskCtrlRule := mpcdao.NewRiskCtrlRule(nil, 0)
-	// briefs, err := riskCtrlRule.GetContractAbiBriefs(ctx, chainCfg.ChainId, "")
+
 	briefs, err := service.DB().GetContractAbiBriefs(ctx, chainId)
 	if err != nil {
 		panic(err)
@@ -128,11 +105,7 @@ func New() *sChainData {
 	for _, brief := range briefs {
 		contracts = append(contracts, common.HexToAddress(brief.ContractAddress))
 	}
-	// nats := mq.New(conf.Config.Nrpc.NatsUrl)
-	// _, err = nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Server.MsgSize)
-	// if err != nil {
-	// 	panic(err)
-	// }
+
 	///init transfer db
 	err = service.DB().InitChainTransferDB(ctx, chainId)
 	if err != nil {
@@ -190,4 +163,10 @@ func New() *sChainData {
 	s.chainclient = module
 
 	return s
+}
+func (s *sChainData) Stop() {
+	s.chainclient.Exit()
+}
+func (s *sChainData) IsRunning() bool {
+	return s.chainclient.IsRunning()
 }

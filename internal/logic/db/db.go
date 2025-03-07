@@ -86,6 +86,17 @@ func (s *sDB) DelChainBlock(ctx context.Context, chainId int64, block int64) err
 	return err
 
 }
+func (s *sDB) UpTransaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+	err := chaindb.UpTransaction(ctx, datas)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
 	// err := s.chainTransfer.InsertBatch(ctx, datas)
 	chaindb := s.chainTransfer[chainId]
@@ -99,19 +110,20 @@ func (s *sDB) InsertTransferBatch(ctx context.Context, chainId int64, datas []*e
 	///
 	return nil
 }
-func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
-	// err := s.chainTransfer.InsertBatch(ctx, datas)
-	chaindb := s.chainTransfer[chainId]
-	if chaindb == nil {
-		return errors.New("no chaindb")
-	}
-	err := chaindb.Insert_Transaction(ctx, datas)
-	if err != nil {
-		return err
-	}
-	///
-	return nil
-}
+
+//	func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
+//		// err := s.chainTransfer.InsertBatch(ctx, datas)
+//		chaindb := s.chainTransfer[chainId]
+//		if chaindb == nil {
+//			return errors.New("no chaindb")
+//		}
+//		err := chaindb.Insert_Transaction(ctx, datas)
+//		if err != nil {
+//			return err
+//		}
+//		///
+//		return nil
+//	}
 func (s *sDB) UpdateState(ctx context.Context, chainId int64, currentBlock int64) error {
 	chaindb := s.chainTransfer[chainId]
 	if chaindb == nil {

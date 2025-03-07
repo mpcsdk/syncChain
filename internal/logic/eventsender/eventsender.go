@@ -34,6 +34,7 @@ func (s *sEvnetSender) SendEvnetBatch(ctx context.Context, datas []*entity.Syncc
 	for _, data := range datas {
 		d, _ := json.Marshal(data)
 		_, err := s.jet.PublishAsync(mq.JetSub_SyncChainTransfer, d)
+		// _, err := s.jet.Publish(ctx, mq.JetSub_SyncChainTransfer, d)
 		if err != nil {
 			g.Log().Error(ctx, "SendMsg err:", err, "data:", data)
 		}

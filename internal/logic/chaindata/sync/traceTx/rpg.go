@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
@@ -42,7 +42,7 @@ type TraceRpg struct {
 
 func newRpgTracer(ctx context.Context, chainId int64) *RpgTrace {
 	if chainId == 9527 {
-		cli, err := ethclient.Dial(rpgtraceurl_testnet)
+		cli, err := util.Dial(rpgtraceurl_testnet)
 		if err != nil {
 			panic(err)
 		}
@@ -55,7 +55,7 @@ func newRpgTracer(ctx context.Context, chainId int64) *RpgTrace {
 			},
 		}
 	} else {
-		cli, err := ethclient.Dial(rpgtraceurl)
+		cli, err := util.Dial(rpgtraceurl)
 		if err != nil {
 			panic(err)
 		}
@@ -71,7 +71,7 @@ func newRpgTracer(ctx context.Context, chainId int64) *RpgTrace {
 	}
 
 }
-func (s *RpgTrace) GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error) {
+func (s *RpgTrace) GetTraceTransfer(ctx context.Context, block *types.Block) ([]*entity.SyncchainChainTransfer, error) {
 	g.Log().Debug(ctx, "getTraceBlock_rpg:", block.Number())
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.ctxTimeOut)
@@ -95,7 +95,7 @@ func (s *RpgTrace) traceBlock_rpg(ctx context.Context, number *big.Int) ([]*Trac
 	}
 	return data.Data, err
 }
-func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *ethtypes.Block, traces []*TraceRpg) []*entity.SyncchainChainTransfer {
+func (s *RpgTrace) ProcessInTxnsRpg(ctx context.Context, block *types.Block, traces []*TraceRpg) []*entity.SyncchainChainTransfer {
 	////
 	filtertrace := []*TraceRpg{}
 	for i, trace := range traces {

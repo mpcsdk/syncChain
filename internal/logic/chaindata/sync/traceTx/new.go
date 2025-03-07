@@ -4,28 +4,28 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"syncChain/internal/logic/chaindata/types"
+	"syncChain/internal/logic/chaindata/util"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
 type ITraceSyncer interface {
-	GetTraceTransfer(ctx context.Context, block *ethtypes.Block) ([]*entity.SyncchainChainTransfer, error)
+	GetTraceTransfer(ctx context.Context, block *types.Block) ([]*entity.SyncchainChainTransfer, error)
 }
 
 type TraceSyncer struct {
-	cli        *ethclient.Client
+	cli        *util.Client
 	ctx        context.Context
 	ctxTimeOut time.Duration
 	chainId    int64
 }
 
 func NewTraceSyncer(ctx context.Context, chainId int64, url string, ctxTimeOut time.Duration) ITraceSyncer {
-	cli, err := ethclient.Dial(url)
+	cli, err := util.Dial(url)
 	if err != nil {
 		panic(err)
 	}

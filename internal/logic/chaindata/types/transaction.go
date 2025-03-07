@@ -49,6 +49,7 @@ const (
 	AccessListTxType = 0x01
 	DynamicFeeTxType = 0x02
 	BlobTxType       = 0x03
+	SetCodeTxType    = 0x04
 )
 
 // Transaction is an Ethereum transaction.
@@ -60,6 +61,17 @@ type Transaction struct {
 	hash atomic.Value
 	size atomic.Value
 	from atomic.Value
+}
+
+func (tx *Transaction) Sender() common.Address {
+	if sc := tx.from.Load(); sc != nil {
+		sigCache := sc.(sigCache)
+		// If the signer used to derive from in a previous
+		// call is not the same as used current, invalidate
+		// the cache.
+		return sigCache.from
+	}
+	return common.Address{}
 }
 
 // NewTx creates a new transaction.
@@ -460,6 +472,10 @@ func (tx *Transaction) Time() time.Time {
 }
 
 // Hash returns the transaction hash.
+
+func (tx *Transaction) SetHash(hash common.Hash) {
+	tx.hash.Store(hash)
+}
 func (tx *Transaction) Hash() common.Hash {
 	if hash := tx.hash.Load(); hash != nil {
 		return hash.(common.Hash)
