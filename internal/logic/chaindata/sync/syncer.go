@@ -147,16 +147,16 @@ func (s *EthModule) Start() {
 			}
 			client := s.cli
 			if nil == client {
-				g.Log().Errorf(s.ctx, "fail to get client")
+				g.Log().Fatal(s.ctx, "fail to get client")
 				return
 			}
 			nr, err := s.getBlockNumber(client)
 			if err != nil {
 				g.Log().Error(s.ctx, "fail to get header")
-				return
+			} else {
+				s.syncBlock(nr)
 			}
 
-			s.syncBlock(nr)
 			time.Sleep(s.blockWait)
 		}
 	}()
