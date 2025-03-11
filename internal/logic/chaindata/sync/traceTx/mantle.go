@@ -117,15 +117,22 @@ func filteMantleTrace(traces []*DebugTraceResult, txs []*types.Transaction) []*D
 	filtetrace := []*DebugTraceCalls{}
 	for _, trace := range traces {
 		/////for subcall
-		calls := filteCalls(trace.Result.Calls)
-		pos := findTransactionPos(trace.TxHash, txs)
+		txIdx := 0
+		pos := -1
+		if trace.TxHash == (common.Hash{}) {
+			pos = findTransactionPosByFromTo(trace.Result.From.Hex(), trace.Result.To.Hex(), txs)
+		} else {
+			pos = findTransactionPos(trace.TxHash, txs)
+		}
 		if pos == -1 {
-			g.Log().Fatal(context.Background(), "trace not find tx is nil:", trace)
+			g.Log().Fatal(context.Background(), "trace not find tx:\n", trace, "\ntxs:", txs)
 			continue
 		}
+
+		calls := filteCalls(trace.Result.Calls)
 		for _, call := range calls {
-			call.TxHash = trace.TxHash
-			call.TxIdx = pos
+			call.TxHash = txs[pos].Hash()
+			call.TxIdx = txIdx
 		}
 		/////
 		///
@@ -141,7 +148,14 @@ func findTransactionPos(hash common.Hash, txs []*types.Transaction) int {
 	}
 	return -1
 }
-
+func findTransactionPosByFromTo(from, to string, txs []*types.Transaction) int {
+	for i, tx := range txs {
+		if tx.Sender().String() == from && tx.To().String() == to {
+			return i
+		}
+	}
+	return -1
+}
 func (s *MantleTrace) processInTxns_mantle(ctx context.Context, block *types.Block, traces []*DebugTraceResult) []*entity.SyncchainChainTransfer {
 	////
 	txs := block.Transactions()
