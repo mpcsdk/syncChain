@@ -16,6 +16,7 @@ var (
 	bytesT  = reflect.TypeOf(Bytes(nil))
 	bigT    = reflect.TypeOf((*Big)(nil))
 	uintT   = reflect.TypeOf(Uint(0))
+	uint8T  = reflect.TypeOf(Uint8(0))
 	uint64T = reflect.TypeOf(Uint64(0))
 	u256T   = reflect.TypeOf((*uint256.Int)(nil))
 )
@@ -351,6 +352,51 @@ func (b *Uint) UnmarshalText(input []byte) error {
 
 // String returns the hex encoding of b.
 func (b Uint) String() string {
+	return EncodeUint64(uint64(b))
+}
+
+///
+/////
+
+type Uint8 uint8
+
+// MarshalText implements encoding.TextMarshaler.
+func (b Uint8) MarshalText() ([]byte, error) {
+	return []byte{byte(b)}, nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (b *Uint8) UnmarshalJSON(input []byte) error {
+	if !isString(input) {
+		return errNonString(uint8T)
+	}
+	return wrapTypeError(b.UnmarshalText(input[1:len(input)-1]), uint8T)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (b *Uint8) UnmarshalText(input []byte) error {
+	raw, err := checkNumberText(input)
+	if err != nil {
+		return err
+	}
+	if len(raw) > 16 {
+		return ErrUint64Range
+	}
+	var dec uint8
+	for _, byte := range raw {
+		nib := decodeNibble8(byte)
+		if nib == badNibble8 {
+			return ErrSyntax
+		}
+		dec *= 16
+		dec += nib
+	}
+	*b = Uint8(dec)
+	return nil
+}
+
+// String returns the hex encoding of b.
+func (b Uint8) String() string {
 	return EncodeUint64(uint64(b))
 }
 

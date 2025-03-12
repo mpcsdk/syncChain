@@ -73,7 +73,7 @@ type SetCodeAuthorization struct {
 	ChainID hexutil.Uint   `json:"chainId" gencodec:"required"`
 	Address common.Address `json:"address" gencodec:"required"`
 	Nonce   *Big           `json:"nonce" gencodec:"required"`
-	V       uint8          `json:"yParity" gencodec:"required"`
+	V       Uint8          `json:"yParity" gencodec:"required"`
 	R       *Big           `json:"r" gencodec:"required"`
 	S       *Big           `json:"s" gencodec:"required"`
 	// YParity *Uint64 `json:"yParity,omitempty"`
@@ -102,7 +102,7 @@ func SignSetCode(prv *ecdsa.PrivateKey, auth SetCodeAuthorization) (SetCodeAutho
 		ChainID: auth.ChainID,
 		Address: auth.Address,
 		Nonce:   auth.Nonce,
-		V:       sig[64],
+		V:       Uint8(sig[64]),
 		// R:       *uint256.MustFromBig(r),
 		R: (*Big)(r),
 		S: (*Big)(s),
@@ -145,7 +145,7 @@ func (a *SetCodeAuthorization) sigHash() common.Hash {
 func (a *SetCodeAuthorization) Authority() (common.Address, error) {
 	sighash := a.sigHash()
 	// if !crypto.ValidateSignatureValues(a.V, a.R.ToBig(), a.S.ToBig(), true) {
-	if !crypto.ValidateSignatureValues(a.V, (*big.Int)(a.R), (*big.Int)(a.S), true) {
+	if !crypto.ValidateSignatureValues(byte(a.V), (*big.Int)(a.R), (*big.Int)(a.S), true) {
 		return common.Address{}, ErrInvalidSig
 	}
 	// encode the signature in uncompressed format
@@ -162,7 +162,7 @@ func (a *SetCodeAuthorization) Authority() (common.Address, error) {
 	s.WriteToSlice(sig[32:64])
 	// a.R.WriteToSlice(sig[:32])
 	// a.S.WriteToSlice(sig[32:64])
-	sig[64] = a.V
+	sig[64] = byte(a.V)
 	// recover the public key from the signature
 	pub, err := crypto.Ecrecover(sighash[:], sig[:])
 	if err != nil {
