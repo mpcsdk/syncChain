@@ -196,7 +196,7 @@ func (s *EthModule) LastBlock() int64 {
 func (s *EthModule) syncBlock(latestBlock int64) {
 
 	topHeight := latestBlock - conf.Config.Syncing.WaitBlock
-	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d", s.chainId, latestBlock, topHeight)
+	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d, current: %d, wait:%d", s.chainId, latestBlock, topHeight, s.currentBlock, conf.Config.Syncing.WaitBlock)
 	////
 	//// syncbatchblock
 	for {
