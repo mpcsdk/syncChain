@@ -150,7 +150,7 @@ func findTransactionPos(hash common.Hash, txs []*types.Transaction) int {
 }
 func findTransactionPosByFromTo(from, to string, txs []*types.Transaction) int {
 	for i, tx := range txs {
-		if tx.Sender().String() == from && tx.To().String() == to {
+		if tx.Sender().String() == from && (tx.To() == nil || tx.To().String() == to) {
 			return i
 		}
 	}
