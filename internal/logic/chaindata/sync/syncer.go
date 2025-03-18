@@ -205,13 +205,8 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 			return
 		}
 
-		if topHeight > s.currentBlock {
-			////batch proccess 10block
-			startNumber := s.currentBlock + 1
-			if startNumber >= topHeight {
-				g.Log().Infof(s.ctx, "no need to syncBlock, remote: %d, local: %d", topHeight, s.currentBlock)
-				return
-			}
+		startNumber := s.currentBlock + 1
+		if topHeight > startNumber {
 
 			endNumber := s.currentBlock + conf.Config.Syncing.BatchSyncTask
 			if endNumber > topHeight {
@@ -299,43 +294,3 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 		}
 	}
 }
-
-// func (s *EthModule) persistenceTransfer(txs []*entity.SyncchainChainTransfer) {
-// 	/////
-// 	g.Log().Debug(s.ctx, "persistenceTransfer:", s.chainId, s.currentBlock, txs)
-// 	if len(txs) > 0 {
-// 		// send latestTx
-// 		service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
-// 		////waiting for persistence
-// 		i := txs[0].Height
-// 		s.blockTransfers[i] = txs
-// 		g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
-// 	}
-// 	for i, txs := range s.blockTransfers {
-// 		// wait 12 block when block is confirmed
-// 		if i > s.currentBlock-12 {
-// 			err := service.DB().InsertTransfer_Transaction(s.ctx, s.chainId, txs)
-// 			if err != nil {
-// 				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
-// 				// if isDuplicateKeyErr(err) {
-// 				// 	g.Log().Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
-// 				// 	err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
-// 				// 	if err != nil {
-// 				// 		g.Log().Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
-// 				// 		return
-// 				// 	}
-// 				// 	err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
-// 				// }
-// 				// if err != nil {
-// 				// 	g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err)
-// 				// 	return
-// 				// }
-// 			}
-// 			////send event
-// 			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
-// 			s.updateHeight(i)
-// 			delete(s.blockTransfers, i)
-// 		}
-// 	}
-
-// }
