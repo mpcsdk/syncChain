@@ -49,6 +49,7 @@ type DebugTraceCalls struct {
 	Calls   []*DebugTraceCalls `json:"calls"`
 	Value   *hexutil.Big       `json:"value"`
 	Type    string             `json:"type"`
+	Error   string             `json:"error"`
 	////
 	TxHash       common.Hash
 	TxIdx        int
@@ -100,12 +101,11 @@ func filteCalls(calls []*DebugTraceCalls) []*DebugTraceCalls {
 			if len(subfiltecalls) > 0 {
 				for _, subcall := range subfiltecalls {
 					subcall.TraceAddress = append(subcall.TraceAddress, i)
-					subcall.TxHash = call.TxHash
 				}
 				filtecalls = append(filtecalls, subfiltecalls...)
 			}
 		}
-		if call.Type == "CALL" && call.Value.String() != "0x0" {
+		if call.Type == "CALL" && call.Value.String() != "0x0" && call.Input == "0x" {
 			call.TraceAddress = append(call.TraceAddress, i)
 			filtecalls = append(filtecalls, call)
 		}
@@ -116,6 +116,9 @@ func filteCalls(calls []*DebugTraceCalls) []*DebugTraceCalls {
 func filteMantleTrace(traces []*DebugTraceResult, txs []*types.Transaction) []*DebugTraceCalls {
 	filtetrace := []*DebugTraceCalls{}
 	for _, trace := range traces {
+		if trace.Result.Error != "" {
+			continue
+		}
 		/////for subcall
 		txIdx := 0
 		pos := -1
@@ -128,7 +131,8 @@ func filteMantleTrace(traces []*DebugTraceResult, txs []*types.Transaction) []*D
 			g.Log().Fatal(context.Background(), "trace not find tx:\n", trace, "\ntxs:", txs)
 			continue
 		}
-
+		/////
+		trace.Result.TxHash = trace.TxHash
 		calls := filteCalls(trace.Result.Calls)
 		for _, call := range calls {
 			call.TxHash = txs[pos].Hash()
