@@ -115,28 +115,28 @@ func filteCalls(calls []*DebugTraceCalls) []*DebugTraceCalls {
 
 func filteMantleTrace(traces []*DebugTraceResult, txs []*types.Transaction) []*DebugTraceCalls {
 	filtetrace := []*DebugTraceCalls{}
-	for _, trace := range traces {
+	for pos, trace := range traces {
 		if trace.Result.Error != "" {
 			continue
 		}
 		/////for subcall
-		txIdx := 0
-		pos := -1
-		if trace.TxHash == (common.Hash{}) {
-			pos = findTransactionPosByFromTo(trace.Result.From.Hex(), trace.Result.To.Hex(), txs)
-		} else {
-			pos = findTransactionPos(trace.TxHash, txs)
-		}
-		if pos == -1 {
+		// txIdx := 0
+		// pos := -1
+		// if trace.TxHash == (common.Hash{}) {
+		// 	pos = findTransactionPosByFromTo(trace.Result.From.Hex(), trace.Result.To.Hex(), txs)
+		// } else {
+		// 	pos = findTransactionPos(trace.TxHash, txs)
+		// }
+
+		if pos > len(txs) {
 			g.Log().Fatal(context.Background(), "trace not find tx:\n", trace, "\ntxs:", txs)
 			continue
 		}
 		/////
-		trace.Result.TxHash = trace.TxHash
 		calls := filteCalls(trace.Result.Calls)
 		for _, call := range calls {
 			call.TxHash = txs[pos].Hash()
-			call.TxIdx = txIdx
+			call.TxIdx = pos
 		}
 		/////
 		///
