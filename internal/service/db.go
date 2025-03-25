@@ -18,6 +18,7 @@ type (
 		QueryTransfer(ctx context.Context, chainId int64, query *mpcdao.QueryData) ([]*entity.SyncchainChainTransfer, error)
 		InsertTransfer(ctx context.Context, chainId int64, data *entity.SyncchainChainTransfer) error
 		DelChainBlock(ctx context.Context, chainId int64, block int64) error
+		UpTransactionMap(ctx context.Context, chainId int64, datas map[int64][]*entity.SyncchainChainTransfer) error
 		UpTransaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
 		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
 		//	func (s *sDB) InsertTransfer_Transaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {

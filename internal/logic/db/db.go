@@ -86,6 +86,18 @@ func (s *sDB) DelChainBlock(ctx context.Context, chainId int64, block int64) err
 	return err
 
 }
+func (s *sDB) UpTransactionMap(ctx context.Context, chainId int64, datas map[int64][]*entity.SyncchainChainTransfer) error {
+	chaindb := s.chainTransfer[chainId]
+	if chaindb == nil {
+		return errors.New("no chaindb")
+	}
+	err := chaindb.UpTransactionMap(ctx, datas)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *sDB) UpTransaction(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error {
 	chaindb := s.chainTransfer[chainId]
 	if chaindb == nil {

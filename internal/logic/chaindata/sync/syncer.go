@@ -249,11 +249,8 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 				service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
 				g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
 			}
-			txs := []*entity.SyncchainChainTransfer{}
-			for _, tx := range txsmap {
-				txs = append(txs, tx...)
-			}
-			err := service.DB().UpTransaction(s.ctx, s.chainId, txs)
+
+			err := service.DB().UpTransactionMap(s.ctx, s.chainId, txsmap)
 			if err != nil {
 				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
 				// if isDuplicateKeyErr(err) {
@@ -271,6 +268,10 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 				// }
 			}
 			////send event
+			txs := []*entity.SyncchainChainTransfer{}
+			for _, tx := range txsmap {
+				txs = append(txs, tx...)
+			}
 			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
 			// s.updateHeight(i)
 			// delete(s.blockTransfers, i)
