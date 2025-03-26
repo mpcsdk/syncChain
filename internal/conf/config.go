@@ -12,12 +12,13 @@ type Cache struct {
 	SessionDuration int `json:"sessionDuration" v:"required|min:100"`
 }
 type Syncing struct {
-	RpcUrl        string `json:"rpcUrl" v:"required"`
-	MsgSize       int64  `json:"msgSize" v:"required|min:100000"`
-	BatchSyncTask int64  `json:"batchSyncTask" v:"required|min:1"`
-	BlockInterval int64  `json:"blockInterval" v:"required|min:1"`
-	TimeOut       int    `json:"timeOut" v:"required|min:1"`
-	WaitBlock     int64  `json:"waitBlock" v:"required|min:1"`
+	RpcUrl            string `json:"rpcUrl" v:"required"`
+	MsgSize           int64  `json:"msgSize" v:"required|min:100000"`
+	BatchSyncTask     int64  `json:"batchSyncTask" v:"required|min:1"`
+	BlockInterval     int64  `json:"blockInterval" v:"required|min:1"`
+	TimeOut           int    `json:"timeOut" v:"required|min:1"`
+	WaitBlock         int64  `json:"waitBlock" v:"required|min:1"`
+	PersistenceBlocks int64  `json:"persistenceBlocks" v:"required|min:1000"`
 }
 type Server struct {
 	Address string `json:"address" v:"required"`

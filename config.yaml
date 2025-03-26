@@ -6,12 +6,13 @@ server:
   swaggerPath: "/swagger"
 
 syncing:
-  rpcUrl: "https://rpc.ankr.com/mantle_sepolia"
+  rpcUrl: "https://api.shasta.trongrid.io/jsonrpc"
   timeOut: 10
   batchSyncTask: 1
   waitBlock: 3
   blockInterval: 15
   msgSize: 1000000
+  persistenceBlocks: 10000
 
 logger:
   level: "info"
@@ -24,9 +25,6 @@ database:
     - link: "pgsql:postgres:123456@tcp(localhost:5432)/sync_chain"
   riskctrl:
     - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
-
-cache:
-  sessionDuration: 2000
 
 nrpc:
   natsUrl: "127.0.0.1:4222"

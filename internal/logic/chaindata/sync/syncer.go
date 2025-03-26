@@ -139,15 +139,20 @@ func (s *EthModule) IsRunning() bool {
 func (s *EthModule) Start() {
 	s.isRunning = true
 	s.exitSig = false
+	client := s.cli
+	if nil == client {
+		g.Log().Fatal(s.ctx, "fail to get client")
+		return
+	}
+	_, err := s.cli.BlockNumber(s.ctx)
+	if err != nil {
+		g.Log().Fatal(s.ctx, "fail to get header")
+		return
+	}
 	go func() {
 		for {
 			if s.exitSig {
 				s.isRunning = false
-				return
-			}
-			client := s.cli
-			if nil == client {
-				g.Log().Fatal(s.ctx, "fail to get client")
 				return
 			}
 			nr, err := s.getBlockNumber(client)
@@ -156,8 +161,17 @@ func (s *EthModule) Start() {
 			} else {
 				s.syncBlock(nr)
 			}
-
-			time.Sleep(s.blockWait)
+			////
+			if nr%1000 == 0 {
+				err := service.DB().TruncateTransfer(s.ctx, s.chainId, s.currentBlock-conf.Config.Syncing.PersistenceBlocks)
+				g.Log().Info(s.ctx, "truncate transfer, block:", s.currentBlock-conf.Config.Syncing.PersistenceBlocks)
+				if err != nil {
+					g.Log().Error(s.ctx, "fail to truncate transfer, err:", err)
+				}
+			}
+			if s.currentBlock == nr {
+				time.Sleep(s.blockWait)
+			}
 		}
 	}()
 	////
@@ -199,99 +213,64 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d, current: %d, wait:%d", s.chainId, latestBlock, topHeight, s.currentBlock, conf.Config.Syncing.WaitBlock)
 	////
 	//// syncbatchblock
-	for {
-		if s.exitSig {
-			s.isRunning = false
-			return
+	startNumber := s.currentBlock + 1
+	if topHeight > startNumber {
+		endNumber := s.currentBlock + conf.Config.Syncing.BatchSyncTask
+		if endNumber > topHeight {
+			endNumber = topHeight
 		}
-
-		startNumber := s.currentBlock + 1
-		if topHeight > startNumber {
-
-			endNumber := s.currentBlock + conf.Config.Syncing.BatchSyncTask
-			if endNumber > topHeight {
-				endNumber = topHeight
-			}
-			g.Log().Info(s.ctx, "syncBlock from:", startNumber, "end:", endNumber)
-			////
-			wg := sync.WaitGroup{}
-			lock := sync.Mutex{}
-			//////
-			txsmap := map[int64][]*entity.SyncchainChainTransfer{}
-			errmap := map[int64]error{}
-			///
-			for i := startNumber; i <= endNumber; i++ {
-				wg.Add(1)
-				go func(blockNumber int64) {
-					defer wg.Done()
-					txs, err := s.processBlock(s.ctx, blockNumber, s.cli)
-					if err != nil {
-						lock.Lock()
-						errmap[blockNumber] = err
-						lock.Unlock()
-					} else {
-						lock.Lock()
-						txsmap[blockNumber] = txs
-						lock.Unlock()
-					}
-				}(i)
-			}
-			wg.Wait()
-			//////
-			if len(errmap) > 0 {
-				for k, v := range errmap {
-					g.Log().Error(s.ctx, "batchSync err:", k, v)
+		g.Log().Info(s.ctx, "syncBlock from:", startNumber, "end:", endNumber)
+		////
+		wg := sync.WaitGroup{}
+		lock := sync.Mutex{}
+		//////
+		txsmap := map[int64][]*entity.SyncchainChainTransfer{}
+		errmap := map[int64]error{}
+		///
+		for i := startNumber; i <= endNumber; i++ {
+			wg.Add(1)
+			go func(blockNumber int64) {
+				defer wg.Done()
+				txs, err := s.processBlock(s.ctx, blockNumber, s.cli)
+				if err != nil {
+					lock.Lock()
+					errmap[blockNumber] = err
+					lock.Unlock()
+				} else {
+					lock.Lock()
+					txsmap[blockNumber] = txs
+					lock.Unlock()
 				}
-				return
+			}(i)
+		}
+		wg.Wait()
+		//////
+		if len(errmap) > 0 {
+			for k, v := range errmap {
+				g.Log().Error(s.ctx, "batchSync err:", k, v)
 			}
-			///
-			for i, txs := range txsmap {
-				service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
-				g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
-			}
-
-			err := service.DB().UpTransactionMap(s.ctx, s.chainId, txsmap)
-			if err != nil {
-				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
-				// if isDuplicateKeyErr(err) {
-				// 	g.Log().Warning(s.ctx, "fail to persistenceTransfer.  err:", err)
-				// 	err = service.DB().DelChainBlock(s.ctx, s.chainId, i)
-				// 	if err != nil {
-				// 		g.Log().Fatal(s.ctx, "fail to DelChainBlock. err:", err, txs)
-				// 		return
-				// 	}
-				// 	err = service.DB().InsertTransferBatch(s.ctx, s.chainId, txs)
-				// }
-				// if err != nil {
-				// 	g.Log().Fatal(s.ctx, "fail to persistenceTransfer. err: ", err)
-				// 	return
-				// }
-			}
-			////send event
-			txs := []*entity.SyncchainChainTransfer{}
-			for _, tx := range txsmap {
-				txs = append(txs, tx...)
-			}
-			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
-			// s.updateHeight(i)
-			// delete(s.blockTransfers, i)
-
-			////sortmap
-			// sortnuber := []int64{}
-			// for i, _ := range txsmap {
-			// 	sortnuber = append(sortnuber, i)
-			// }
-			// slices.Sort(sortnuber)
-			// ////
-			// cnt := 0
-			// for _, v := range sortnuber {
-			// 	cnt = cnt + len(txsmap[v])
-			// 	s.transferCh <- txsmap[v]
-			// }
-			g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, len(txs))
-			s.currentBlock = endNumber
-		} else {
 			return
 		}
+		///
+		for i, txs := range txsmap {
+			service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
+			g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
+		}
+
+		err := service.DB().UpTransactionMap(s.ctx, s.chainId, txsmap)
+		if err != nil {
+			g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
+		}
+		////send event
+		txs := []*entity.SyncchainChainTransfer{}
+		for _, tx := range txsmap {
+			txs = append(txs, tx...)
+		}
+		service.EvnetSender().SendEvnetBatch(s.ctx, txs)
+
+		g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, len(txs))
+		s.currentBlock = endNumber
+	} else {
+		return
 	}
 }
