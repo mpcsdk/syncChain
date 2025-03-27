@@ -2,6 +2,7 @@ package syncBlock
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -159,18 +160,18 @@ func (s *EthModule) Start() {
 			if err != nil {
 				g.Log().Error(s.ctx, "fail to get header")
 			} else {
-				s.syncBlock(nr)
+				err = s.syncBlock(nr)
 			}
 			////
+			if err != nil || s.currentBlock >= nr {
+				time.Sleep(s.blockWait)
+			}
 			if nr%1000 == 0 {
 				err := service.DB().TruncateTransfer(s.ctx, s.chainId, s.currentBlock-conf.Config.Syncing.PersistenceBlocks)
 				g.Log().Info(s.ctx, "truncate transfer, block:", s.currentBlock-conf.Config.Syncing.PersistenceBlocks)
 				if err != nil {
 					g.Log().Error(s.ctx, "fail to truncate transfer, err:", err)
 				}
-			}
-			if s.currentBlock >= nr {
-				time.Sleep(s.blockWait)
 			}
 		}
 	}()
@@ -207,7 +208,7 @@ func (s *EthModule) ChainId() int64 {
 func (s *EthModule) LastBlock() int64 {
 	return s.lastBlock
 }
-func (s *EthModule) syncBlock(latestBlock int64) {
+func (s *EthModule) syncBlock(latestBlock int64) error {
 
 	topHeight := latestBlock - conf.Config.Syncing.WaitBlock
 	g.Log().Infof(s.ctx, "chainId:%d, get header. latest: %d, topHeight: %d, current: %d, wait:%d", s.chainId, latestBlock, topHeight, s.currentBlock, conf.Config.Syncing.WaitBlock)
@@ -249,7 +250,7 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 			for k, v := range errmap {
 				g.Log().Error(s.ctx, "batchSync err:", k, v)
 			}
-			return
+			return errors.New("batchSync err")
 		}
 		///
 		for i, txs := range txsmap {
@@ -271,6 +272,7 @@ func (s *EthModule) syncBlock(latestBlock int64) {
 		g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, len(txs))
 		s.currentBlock = endNumber
 	} else {
-		return
+		return errors.New("syncBlock err")
 	}
+	return nil
 }
