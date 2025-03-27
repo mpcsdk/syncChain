@@ -253,21 +253,22 @@ func (s *EthModule) syncBlock(latestBlock int64) error {
 			return errors.New("batchSync err")
 		}
 		///
-		for i, txs := range txsmap {
-			service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
-			g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
-		}
-
-		err := service.DB().UpTransactionMap(s.ctx, s.chainId, txsmap)
-		if err != nil {
-			g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
-		}
 		////send event
 		txs := []*entity.SyncchainChainTransfer{}
 		for _, tx := range txsmap {
 			txs = append(txs, tx...)
 		}
-		service.EvnetSender().SendEvnetBatch(s.ctx, txs)
+		if len(txs) > 0 {
+			err := service.DB().UpTransactionMap(s.ctx, s.chainId, txsmap)
+			if err != nil {
+				g.Log().Fatal(s.ctx, "InsertTransfer_Transaction:", err)
+			}
+			for i, txs := range txsmap {
+				service.EvnetSender().SendEvnetBatch_Latest(s.ctx, txs)
+				g.Log().Debugf(s.ctx, "persistenceTransfer cached,chainId:%d , number:%d, log:%d", s.chainId, i, len(txs))
+			}
+			service.EvnetSender().SendEvnetBatch(s.ctx, txs)
+		}
 
 		g.Log().Infof(s.ctx, "%d:syncBlock, startNumber: %d, endNumber: %d, cnt:%d", s.chainId, startNumber, endNumber, len(txs))
 		s.currentBlock = endNumber
