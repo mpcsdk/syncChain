@@ -169,7 +169,7 @@ func (s *EthModule) Start() {
 					g.Log().Error(s.ctx, "fail to truncate transfer, err:", err)
 				}
 			}
-			if s.currentBlock == nr {
+			if s.currentBlock >= nr {
 				time.Sleep(s.blockWait)
 			}
 		}
