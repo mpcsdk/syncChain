@@ -10,6 +10,7 @@ import (
 
 	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
+	"github.com/mpcsdk/mpcCommon/riskAdminService/riskAdminServiceNats"
 )
 
 type (
@@ -24,7 +25,7 @@ type (
 		InsertTransferBatch(ctx context.Context, chainId int64, datas []*entity.SyncchainChainTransfer) error
 		UpdateState(ctx context.Context, chainId int64, currentBlock int64) error
 		GetState(ctx context.Context, chainId int64) (*entity.SyncchainState, error)
-		GetContractAbiBriefs(ctx context.Context, chainId int64) ([]*entity.RiskadminContractabi, error)
+		RiskAdminRepo() *riskAdminServiceNats.RiskAdminRepo
 	}
 )
 

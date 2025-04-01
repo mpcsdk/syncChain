@@ -42,6 +42,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
+	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/franklihub/nrpc v0.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect

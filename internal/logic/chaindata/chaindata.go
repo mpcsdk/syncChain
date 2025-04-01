@@ -14,8 +14,8 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
 	"github.com/gogf/gf/v2/util/gconv"
-	"github.com/mpcsdk/mpcCommon/mpcdao"
 	"github.com/mpcsdk/mpcCommon/mq"
+	"github.com/mpcsdk/mpcCommon/riskAdminService/riskAdminServiceNats"
 )
 
 type sChainData struct {
@@ -25,7 +25,7 @@ type sChainData struct {
 	closed      bool
 	nats        *mq.NatsServer
 	/////
-	riskCtrlRule *mpcdao.RiskAdminDB
+	riskAdminService *riskAdminServiceNats.RiskAdminNatsService
 	// chainCfg     *mpcdao.ChainCfg
 	////
 }
@@ -96,11 +96,9 @@ func New() *sChainData {
 	if chainId == 0 {
 		panic("chainId")
 	}
+	/////
+	briefs := service.DB().RiskAdminRepo().GetContractByChainId(chainId)
 
-	briefs, err := service.DB().GetContractAbiBriefs(ctx, chainId)
-	if err != nil {
-		panic(err)
-	}
 	contracts := []common.Address{}
 	for _, brief := range briefs {
 		contracts = append(contracts, common.HexToAddress(brief.ContractAddress))

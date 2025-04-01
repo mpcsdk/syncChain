@@ -9,7 +9,7 @@ import (
 )
 
 type Cache struct {
-	SessionDuration int `json:"sessionDuration" v:"required|min:100"`
+	Duration int `json:"duration" v:"required|min:100"`
 }
 type Syncing struct {
 	RpcUrl            string `json:"rpcUrl" v:"required"`
@@ -25,8 +25,9 @@ type Server struct {
 	WorkId  int    `json:"workId" v:"required|min:1"`
 	Name    string `json:"name" v:"required"`
 }
-type Nrpcfg struct {
+type NatsCfg struct {
 	NatsUrl string `json:"natsUrl" v:"required"`
+	TimeOut int    `json:"timeOut" v:"required|min:1"`
 }
 
 // //
@@ -44,7 +45,7 @@ type Cfg struct {
 	Syncing   *Syncing `json:"syncing" v:"required"`
 	Cache     *Cache   `json:"cache" v:"required"`
 	JaegerUrl string   `json:"jaegerUrl" `
-	Nrpc      *Nrpcfg  `json:"nrpc" v:"required"`
+	Nats      *NatsCfg `json:"nats" v:"required"`
 	////
 	SyncCfgFile string `json:"syncCfgFile" v:"required"`
 }

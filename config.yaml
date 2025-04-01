@@ -26,8 +26,9 @@ database:
   riskctrl:
     - link: "mysql:riskcontrol:123456@tcp(localhost:3306)/riskcontrol"
 
-nrpc:
+nats:
   natsUrl: "127.0.0.1:4222"
+  timeOut: 5
 
 syncCfgFile: "./syncCfg.yaml"
 

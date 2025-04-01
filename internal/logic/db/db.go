@@ -13,13 +13,14 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
+	"github.com/mpcsdk/mpcCommon/riskAdminService/riskAdminServiceNats"
 )
 
 type sDB struct {
-	r             *gredis.Redis
-	dur           int
-	chainTransfer map[int64]*mpcdao.ChainTransfer
-	riskadmin     *mpcdao.RiskAdminDB
+	r                *gredis.Redis
+	dur              int
+	chainTransfer    map[int64]*mpcdao.ChainTransfer
+	riskAdminService *riskAdminServiceNats.RiskAdminNatsService
 	// chainCfg      *mpcdao.ChainCfg
 }
 
@@ -151,22 +152,9 @@ func (s *sDB) GetState(ctx context.Context, chainId int64) (*entity.SyncchainSta
 	return chaindb.GetState(ctx, chainId)
 }
 
-func (s *sDB) GetContractAbiBriefs(ctx context.Context, chainId int64) ([]*entity.RiskadminContractabi, error) {
-
-	return s.riskadmin.GetContractAbiBriefs(ctx, chainId, "")
+func (s *sDB) RiskAdminRepo() *riskAdminServiceNats.RiskAdminRepo {
+	return s.riskAdminService.RiskAdminRepo()
 }
-
-// func (s *sDB) RiskAdmin() *mpcdao.RiskAdminDB {
-// 	return s.riskadmin
-// }
-
-//	func (s *sDB) ContractAbi() *mpcdao.RiskCtrlRule {
-//		return s.riskCtrlRule
-//	}
-//
-//	func (s *sDB) ChainCfg() *mpcdao.ChainCfg {
-//		return s.chainCfg
-//	}
 func New() *sDB {
 
 	///
@@ -175,12 +163,26 @@ func New() *sDB {
 	if err != nil {
 		panic(err)
 	}
+	////
+	///
+	riskAdminService, err := riskAdminServiceNats.NewRiskAdminNatsService(gctx.GetInitCtx(),
+		riskAdminServiceNats.RiskAdminServiceCfgCfgBuilder().
+			// WithConsumeChainFn(s.ConsumeChainCfg).
+			// WithConsumeContractFn(s.ConsumeContract).
+			// WithConsumeRiskRuleFn(s.ConsumeRiskRule).
+			// WithConsumeRiskRuleCheckRespFn(s.consumeRiskRuleCheck).
+			WithRedis(r, conf.Config.Cache.Duration).
+			WithUrlTimeOut(conf.Config.Nats.NatsUrl, int64(conf.Config.Nats.TimeOut)),
+	)
+	if err != nil {
+		panic(err)
+	}
 	///
 	s := &sDB{
-		r:             r,
-		dur:           conf.Config.Cache.SessionDuration,
-		chainTransfer: map[int64]*mpcdao.ChainTransfer{},
-		riskadmin:     mpcdao.NewRiskAdminDB(r, conf.Config.Cache.SessionDuration),
+		r: r,
+		// dur:           conf.Config.Cache.SessionDuration,
+		chainTransfer:    map[int64]*mpcdao.ChainTransfer{},
+		riskAdminService: riskAdminService,
 		//mapmpcdao.NewChainTransfer(r, conf.Config.Cache.SessionDuration),
 		// riskCtrlRule: mpcdao.NewRiskCtrlRule(r, conf.Config.Cache.SessionDuration),
 		// chainCfg:     mpcdao.NewChainCfg(r, conf.Config.Cache.SessionDuration),

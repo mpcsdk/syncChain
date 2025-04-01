@@ -16,7 +16,7 @@ type sEvnetSender struct {
 }
 
 func NewMsg() *sEvnetSender {
-	nats := mq.New(conf.Config.Nrpc.NatsUrl)
+	nats := mq.New(conf.Config.Nats.NatsUrl)
 	jet := nats.JetStream()
 	_, err := nats.CreateOrUpdateStream(mq.JetStream_SyncChain, []string{mq.JetSub_SyncChain}, conf.Config.Syncing.MsgSize)
 	if err != nil {

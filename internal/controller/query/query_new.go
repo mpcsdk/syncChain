@@ -7,7 +7,6 @@ package query
 import (
 	"syncChain/api/query"
 	"syncChain/internal/service"
-	"github.com/gogf/gf/v2/os/gctx"
 	"github.com/mpcsdk/mpcCommon/mpcdao/model/entity"
 )
 
@@ -23,11 +22,7 @@ func NewV1() query.IQueryV1 {
 		// chains: make(map[int64]*entity.RiskadminChaincfg),
 	}
 	////
-	ctx := gctx.GetInitCtx()
-	contracts, err := service.DB().GetContractAbiBriefs(ctx, 0)
-	if err != nil {
-		panic(err)
-	}
+	contracts:= service.DB().RiskAdminRepo().AllContract()
 	for _, c := range contracts {
 		s.contracts[c.ContractAddress] = c
 	}
